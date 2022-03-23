@@ -36,7 +36,7 @@ export default function UpdateDeleteCustomerForm({ customerData }) {
 
   const deleteCustomer = async () => {
     const result = await axios.post(
-      "http://localhost:3001/api/deletecustomer",
+      "http://localhost:3001/customer/deletecustomer",
       {
         id: customerData.Id,
       }
@@ -59,7 +59,7 @@ export default function UpdateDeleteCustomerForm({ customerData }) {
     }
 
     const result = await axios.post(
-      "http://localhost:3001/api/updateCustomer",
+      "http://localhost:3001/customer/updateCustomer",
       body
     );
 

@@ -2,56 +2,124 @@ import React, { useState } from "react";
 import Box from "@mui/material/Box";
 import Drawer from "@mui/material/Drawer";
 import Button from "@mui/material/Button";
-import List from "@mui/material/List";
-import Divider from "@mui/material/Divider";
-import ListItem from "@mui/material/ListItem";
-import ListItemIcon from "@mui/material/ListItemIcon";
-import ListItemText from "@mui/material/ListItemText";
-import InboxIcon from "@mui/icons-material/MoveToInbox";
-import MailIcon from "@mui/icons-material/Mail";
-import ChevronRight from "@mui/icons-material/ChevronRight";
+import Link from "next/link";
+
+import {
+  ChevronRight,
+  Schema,
+  InboxIcon,
+  ExpandLess,
+  ExpandMore,
+  StarBorder,
+  Cottage,
+} from "@mui/icons-material";
+import {
+  ListItemButton,
+  ListItemText,
+  Collapse,
+  ListItemIcon,
+  ListItem,
+  List,
+  Typography,
+} from "@mui/material";
 
 const Sidebar = () => {
   const [state, setState] = useState(false);
+  const [titleOpen, setTitleOpen] = useState({
+    masterData: false,
+  });
+  const [collapse, setCollapse] = useState(true);
 
-  const toggleDrawer = (open) => (event) => {
-    if (
-      event.type === "keydown" &&
-      (event.key === "Tab" || event.key === "Shift")
-    ) {
-      return;
-    }
-
-    setState(open);
+  const toggleDrawer = (isopen) => {
+    setState(isopen);
   };
 
-  const list = (anchor) => (
-    <Box
-      sx={{ width: anchor === "top" || anchor === "bottom" ? "auto" : 250 }}
-      role="presentation"
-      onClick={toggleDrawer(false)}
-      onKeyDown={toggleDrawer(false)}>
-      <List>
-        {["home", "Master data"].map((text, index) => (
-          <ListItem button key={text}>
-            <ListItemIcon>
-              {index % 2 === 0 ? <InboxIcon /> : <MailIcon />}
-            </ListItemIcon>
-            <ListItemText primary={text} />
-          </ListItem>
-        ))}
-      </List>
+  const handleTitleOpen = (state) => {
+    setTitleOpen(state);
+  };
+
+  const handleClick = () => {};
+
+  const list = () => (
+    <Box sx={{ width: "15vw" }} role="presentation">
+      <ListItemButton>
+        <ListItemIcon>
+          <Cottage />
+        </ListItemIcon>
+        <Link href="/home">
+          <ListItemText primary="HOME" />
+        </Link>
+      </ListItemButton>
+      <ListItemButton
+        name="masterData"
+        onClick={() => {
+          handleTitleOpen({
+            ...titleOpen,
+            masterData: titleOpen.masterData ? false : true,
+          });
+        }}>
+        <ListItemIcon>
+          <Schema />
+        </ListItemIcon>
+        <ListItemText primary="DATA MASTER" />
+        {titleOpen.masterData ? <ExpandLess /> : <ExpandMore />}
+      </ListItemButton>
+      <Collapse in={titleOpen.masterData} timeout="auto" unmountOnExit>
+        <List component="div" disablePadding>
+          <ListItemButton sx={{ pl: 14 }}>
+            <Link href="/master_data/customer_master">
+              <ListItemText
+                primary={
+                  <Typography sx={{ fontSize: "0.8rem", color: "blue" }}>
+                    CUSTOMER
+                  </Typography>
+                }
+              />
+            </Link>
+          </ListItemButton>
+          <ListItemButton sx={{ pl: 14 }}>
+            <Link href="/master_data/supplier_master">
+              <ListItemText
+                primary={
+                  <Typography sx={{ fontSize: "0.8rem", color: "blue" }}>
+                    SUPPLIER
+                  </Typography>
+                }
+              />
+            </Link>
+          </ListItemButton>
+          <ListItemButton sx={{ pl: 14 }}>
+            <Link href="/master_data/product_master">
+              <ListItemText
+                primary={
+                  <Typography sx={{ fontSize: "0.8rem", color: "blue" }}>
+                    PRODUCT
+                  </Typography>
+                }
+              />
+            </Link>
+          </ListItemButton>
+        </List>
+      </Collapse>
     </Box>
   );
 
   return (
     <div>
       <React.Fragment>
-        <Button onClick={toggleDrawer(true)}>
+        <Button
+          onClick={() => {
+            toggleDrawer(true);
+          }}>
           <ChevronRight style={{ fontSize: "50px", color: "black" }} />
         </Button>
-        <Drawer anchor={"left"} open={state} onClose={toggleDrawer(false)}>
-          {list("left")}
+        <Drawer
+          anchor="left"
+          open={state}
+          onClose={() => {
+            toggleDrawer(false);
+          }}>
+          {list()}
         </Drawer>
       </React.Fragment>
     </div>

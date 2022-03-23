@@ -88,7 +88,7 @@ const Customer_master = ({ customerList }) => {
 
 export async function getServerSideProps(context) {
   const customerList = await fetching.get(
-    "http://localhost:3001/api/customerlist"
+    "http://localhost:3001/customer/customerlist"
   );
 
   return {

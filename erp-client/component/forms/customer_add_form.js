@@ -54,7 +54,7 @@ export default function AddCustomerForm() {
 
           try {
             const result = await fetching.post(
-              "http://localhost:3001/api/createCustomer",
+              "http://localhost:3001/customer/createCustomer",
               values
             );
           } catch (err) {

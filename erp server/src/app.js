@@ -1,13 +1,13 @@
-let express = require("express");
-let path = require("path");
-let cookieParser = require("cookie-parser");
-let logger = require("morgan");
-let indexRouter = require(".././routes/index");
-let usersRouter = require(".././routes/users");
-let apiRouter = require("../routes/api/db_operations");
-let app = express();
-let db = require("./db/conn");
-let cors = require("cors");
+const express = require("express");
+const path = require("path");
+const cookieParser = require("cookie-parser");
+const logger = require("morgan");
+const indexRouter = require(".././routes/index");
+const customer_routes = require("../routes/customer_db");
+const supplier_routes = require("../routes/supplier_db");
+const app = express();
+const db = require("./db/conn");
+const cors = require("cors");
 
 app.use(logger("dev"));
 app.use(cors({ origin: "*" }));
@@ -17,7 +17,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
 app.use("/", indexRouter);
-app.use("/users", usersRouter);
-app.use("/api", apiRouter);
+app.use("/customer", customer_routes);
+app.use("/supplier", supplier_routes);
 
 module.exports = app;
