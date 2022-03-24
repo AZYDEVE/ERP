@@ -7,11 +7,12 @@ import Link from "next/link";
 import {
   ChevronRight,
   Schema,
-  InboxIcon,
   ExpandLess,
   ExpandMore,
-  StarBorder,
   Cottage,
+  Inventory,
+  ShoppingBasket,
+  MonetizationOn,
 } from "@mui/icons-material";
 import {
   ListItemButton,
@@ -27,6 +28,9 @@ const Sidebar = () => {
   const [state, setState] = useState(false);
   const [titleOpen, setTitleOpen] = useState({
     masterData: false,
+    inventory: false,
+    purchaseOrder: false,
+    salesOrder: false,
   });
   const [collapse, setCollapse] = useState(true);
 
@@ -50,6 +54,7 @@ const Sidebar = () => {
           <ListItemText primary="HOME" />
         </Link>
       </ListItemButton>
+      {/* ********************************************DATA MASTER********************************* */}
       <ListItemButton
         name="masterData"
         onClick={() => {
@@ -66,7 +71,7 @@ const Sidebar = () => {
       </ListItemButton>
       <Collapse in={titleOpen.masterData} timeout="auto" unmountOnExit>
         <List component="div" disablePadding>
-          <ListItemButton sx={{ pl: 14 }}>
+          <ListItemButton sx={{ pl: 12 }}>
             <Link href="/master_data/customer_master">
               <ListItemText
                 primary={
@@ -77,7 +82,7 @@ const Sidebar = () => {
               />
             </Link>
           </ListItemButton>
-          <ListItemButton sx={{ pl: 14 }}>
+          <ListItemButton sx={{ pl: 12 }}>
             <Link href="/master_data/supplier_master">
               <ListItemText
                 primary={
@@ -88,12 +93,177 @@ const Sidebar = () => {
               />
             </Link>
           </ListItemButton>
-          <ListItemButton sx={{ pl: 14 }}>
+          <ListItemButton sx={{ pl: 12 }}>
             <Link href="/master_data/product_master">
               <ListItemText
                 primary={
                   <Typography sx={{ fontSize: "0.8rem", color: "blue" }}>
                     PRODUCT
+                  </Typography>
+                }
+              />
+            </Link>
+          </ListItemButton>
+        </List>
+      </Collapse>
+      {/* **********************************************Inventory *********************************************** */}
+      <ListItemButton
+        onClick={() => {
+          handleTitleOpen({
+            ...titleOpen,
+            inventory: titleOpen.inventory ? false : true,
+          });
+        }}>
+        <ListItemIcon>
+          <Inventory />
+        </ListItemIcon>
+        <ListItemText primary="INVENTORY" />
+        {titleOpen.inventory ? <ExpandLess /> : <ExpandMore />}
+      </ListItemButton>
+      <Collapse in={titleOpen.inventory} timeout="auto" unmountOnExit>
+        <List component="div" disablePadding>
+          <ListItemButton sx={{ pl: 12 }}>
+            <Link href="/master_data/customer_master">
+              <ListItemText
+                primary={
+                  <Typography sx={{ fontSize: "0.8rem", color: "blue" }}>
+                    RECEIVING
+                  </Typography>
+                }
+              />
+            </Link>
+          </ListItemButton>
+          <ListItemButton sx={{ pl: 12 }}>
+            <Link href="/master_data/supplier_master">
+              <ListItemText
+                primary={
+                  <Typography sx={{ fontSize: "0.8rem", color: "blue" }}>
+                    INVENTORY LIST
+                  </Typography>
+                }
+              />
+            </Link>
+          </ListItemButton>
+          <ListItemButton sx={{ pl: 12 }}>
+            <Link href="/master_data/product_master">
+              <ListItemText
+                primary={
+                  <Typography sx={{ fontSize: "0.8rem", color: "blue" }}>
+                    INVENTORY ADJUSTMENT
+                  </Typography>
+                }
+              />
+            </Link>
+          </ListItemButton>
+        </List>
+      </Collapse>
+      {/* *****************************PURCHASE ORDER****************************************************** */}
+      <ListItemButton
+        onClick={() => {
+          handleTitleOpen({
+            ...titleOpen,
+            purchaseOrder: titleOpen.purchaseOrder ? false : true,
+          });
+        }}>
+        <ListItemIcon>
+          <ShoppingBasket />
+        </ListItemIcon>
+        <ListItemText primary="PURCHASE ORDER" />
+        {titleOpen.purchaseOrder ? <ExpandLess /> : <ExpandMore />}
+      </ListItemButton>
+      <Collapse in={titleOpen.purchaseOrder} timeout="auto" unmountOnExit>
+        <List component="div" disablePadding>
+          <ListItemButton sx={{ pl: 12 }}>
+            <Link href="/master_data/customer_master">
+              <ListItemText
+                primary={
+                  <Typography sx={{ fontSize: "0.8rem", color: "blue" }}>
+                    CREATE P.O
+                  </Typography>
+                }
+              />
+            </Link>
+          </ListItemButton>
+          <ListItemButton sx={{ pl: 12 }}>
+            <Link href="/master_data/supplier_master">
+              <ListItemText
+                primary={
+                  <Typography sx={{ fontSize: "0.8rem", color: "blue" }}>
+                    P.O LIST
+                  </Typography>
+                }
+              />
+            </Link>
+          </ListItemButton>
+        </List>
+      </Collapse>
+
+      {/* *******************************************SALES ORDER********************************************* */}
+      <ListItemButton
+        onClick={() => {
+          handleTitleOpen({
+            ...titleOpen,
+            salesOrder: titleOpen.salesOrder ? false : true,
+          });
+        }}>
+        <ListItemIcon>
+          <MonetizationOn />
+        </ListItemIcon>
+        <ListItemText primary="SALES ORDER" />
+        {titleOpen.salesOrder ? <ExpandLess /> : <ExpandMore />}
+      </ListItemButton>
+      <Collapse in={titleOpen.salesOrder} timeout="auto" unmountOnExit>
+        <List component="div" disablePadding>
+          <ListItemButton sx={{ pl: 12 }}>
+            <Link href="/master_data/customer_master">
+              <ListItemText
+                primary={
+                  <Typography sx={{ fontSize: "0.8rem", color: "blue" }}>
+                    CREATE SALES ORDER
+                  </Typography>
+                }
+              />
+            </Link>
+          </ListItemButton>
+          <ListItemButton sx={{ pl: 12 }}>
+            <Link href="/master_data/supplier_master">
+              <ListItemText
+                primary={
+                  <Typography sx={{ fontSize: "0.8rem", color: "blue" }}>
+                    SALES ORDER LIST
+                  </Typography>
+                }
+              />
+            </Link>
+          </ListItemButton>
+          <ListItemButton sx={{ pl: 12 }}>
+            <Link href="/master_data/supplier_master">
+              <ListItemText
+                primary={
+                  <Typography sx={{ fontSize: "0.8rem", color: "blue" }}>
+                    SALES PICK&PACK
+                  </Typography>
+                }
+              />
+            </Link>
+          </ListItemButton>
+          <ListItemButton sx={{ pl: 12 }}>
+            <Link href="/master_data/supplier_master">
+              <ListItemText
+                primary={
+                  <Typography sx={{ fontSize: "0.8rem", color: "blue" }}>
+                    SALES SHIPPING
+                  </Typography>
+                }
+              />
+            </Link>
+          </ListItemButton>
+          <ListItemButton sx={{ pl: 12 }}>
+            <Link href="/master_data/supplier_master">
+              <ListItemText
+                primary={
+                  <Typography sx={{ fontSize: "0.8rem", color: "blue" }}>
+                    SALES OTHERS
                   </Typography>
                 }
               />

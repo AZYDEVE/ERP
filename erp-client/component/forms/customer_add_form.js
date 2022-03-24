@@ -5,8 +5,8 @@ import * as yup from "yup";
 import TextField from "./formComponent/field";
 import SubmitButton from "./formComponent/submitButton";
 import DatePicker from "./formComponent/datePicker";
-import axios from "axios";
-import fetching from "../../util/fetchingUtil";
+
+import { create_customer } from "../../util/api_call/customer_api_call";
 import Router from "next/router";
 import CustomSelect from "./formComponent/select";
 
@@ -53,10 +53,7 @@ export default function AddCustomerForm() {
           // same shape as initial values
 
           try {
-            const result = await fetching.post(
-              "http://localhost:3001/customer/createCustomer",
-              values
-            );
+            const result = await create_customer(values);
           } catch (err) {
             console.log(err);
           }

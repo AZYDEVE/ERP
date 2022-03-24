@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-
 import Modal from "@mui/material/Modal";
 import Box from "@mui/material/Box";
 import TableRow from "@mui/material/TableRow";
 import Customer_update_delete_form from "../forms/customer_update_delete_form";
+import Supplier_update_delete_form from "../forms/supplier_update_delete_form";
 
 const style = {
   position: "absolute",
@@ -18,10 +18,23 @@ const style = {
   overflow: "scroll",
 };
 
-const ClickableTableRow = ({ children, customerData }) => {
+const ClickableTableRow = ({ children, data, formType }) => {
   const [open, setOpen] = React.useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
+
+  const displayUsedForm = () => {
+    switch (formType) {
+      case "customer_update_delete_form":
+        return <Customer_update_delete_form customerData={data} />;
+        break;
+      case "supplier_update_delete_form":
+        return <Supplier_update_delete_form supplierData={data} />;
+        break;
+      default:
+        return null;
+    }
+  };
 
   return (
     <>
@@ -33,9 +46,7 @@ const ClickableTableRow = ({ children, customerData }) => {
         onClose={handleClose}
         aria-labelledby="modal-modal-title"
         aria-describedby="modal-modal-description">
-        <Box sx={style}>
-          <Customer_update_delete_form customerData={customerData} />
-        </Box>
+        <Box sx={style}>{displayUsedForm()}</Box>
       </Modal>
     </>
   );

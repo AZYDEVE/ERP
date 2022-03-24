@@ -4,7 +4,70 @@ const db = require("../src/db/conn");
 
 router.get("/supplierList", (req, res) => {
   db.query(`SELECT * FROM supplier`, (err, result, field) => {
+    if (err) {
+      console.log(err);
+      res.send("something went wrong");
+      return;
+    }
+    console.log();
     res.json(result);
+  });
+});
+
+router.post("/createSupplier", (req, res) => {
+  const sql_fields = Object.keys(req.body).toString();
+  const sql_values = Object.values(req.body);
+
+  console.log(sql_values);
+  db.query(
+    `INSERT INTO supplier (${sql_fields}) VALUES (?)`,
+    [sql_values],
+    (err, result, field) => {
+      if (err) {
+        console.log(err);
+        res.send("something went wrong");
+        return;
+      }
+      console.log();
+      res.json({ status: "succss", insertId: result.insertId });
+    }
+  );
+});
+
+router.post("/deleteSupplier", (req, res) => {
+  console.log(req.body.id);
+  db.query(
+    `DELETE FROM supplier WHERE id=${req.body.id}`,
+    (err, result, field) => {
+      if (err) {
+        console.log(err);
+      }
+      console.log(result);
+      res.send("ok delete");
+    }
+  );
+});
+
+router.post("/updateSupplier", (req, res) => {
+  let sqlStr = "UPDATE supplier SET ";
+  Object.keys(req.body).map((key, index) => {
+    if (key !== "Id" && req.body[key] !== null) {
+      sqlStr += key + `= "${req.body[key]}",`;
+    }
+
+    if (req.body[key] === null) {
+      sqlStr += key + "=null,";
+    }
+  });
+
+  sqlStr = sqlStr.slice(0, -1) + ` Where id=${req.body.id}`;
+
+  db.query(sqlStr, (err, result, feild) => {
+    if (err) {
+      console.log(err);
+    }
+    console.log(result);
+    res.send("ok");
   });
 });
 

@@ -1,5 +1,4 @@
 import React from "react";
-import fetching from "../../util/fetchingUtil";
 // import Table from "@mui/material/Table";
 import {
   TableBody,
@@ -13,7 +12,7 @@ import {
 } from "@mui/material";
 import ModalAddCustomer from "../../component/modal/customer_add_modal";
 import ClickableTableRow from "../../component/tableComponent/tableRow_custom";
-import moment from "moment";
+import { get_customer_list } from "../../util/api_call/customer_api_call";
 
 const Customer_master = ({ customerList }) => {
   const tableContainer = {
@@ -65,7 +64,10 @@ const Customer_master = ({ customerList }) => {
 
               <TableBody>
                 {customerList.map((row, key) => (
-                  <ClickableTableRow key={key} customerData={row}>
+                  <ClickableTableRow
+                    key={key}
+                    data={row}
+                    formType="customer_update_delete_form">
                     <TableCell component="th" scope="row">
                       {"ABC0" + row.Id}
                     </TableCell>
@@ -87,15 +89,15 @@ const Customer_master = ({ customerList }) => {
 };
 
 export async function getServerSideProps(context) {
-  const customerList = await fetching.get(
-    "http://localhost:3001/customer/customerlist"
-  );
+  const result = await get_customer_list();
 
-  return {
-    props: {
-      customerList: customerList.data,
-    }, // will be passed to the page component as props
-  };
+  if (result.data) {
+    return {
+      props: {
+        customerList: result.data,
+      }, // will be passed to the page component as props
+    };
+  }
 }
 
 export default Customer_master;

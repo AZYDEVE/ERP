@@ -1,5 +1,4 @@
 import React from "react";
-import fetching from "../../util/fetchingUtil";
 
 import {
   TableBody,
@@ -13,6 +12,7 @@ import {
 } from "@mui/material";
 import ModalAddsupplier from "../../component/modal/supplier_add_modal";
 import ClickableTableRow from "../../component/tableComponent/tableRow_custom";
+import { get_supplierList } from "../../util/api_call/supplier_api_call";
 
 const Supplier_master = ({ supplierList }) => {
   const tableContainer = {
@@ -62,7 +62,10 @@ const Supplier_master = ({ supplierList }) => {
 
               <TableBody>
                 {supplierList.map((row, key) => (
-                  <ClickableTableRow key={key} customerData={row}>
+                  <ClickableTableRow
+                    key={key}
+                    data={row}
+                    formType="supplier_update_delete_form">
                     <TableCell component="th" scope="row">
                       {"AVC0" + row.id}
                     </TableCell>
@@ -84,15 +87,16 @@ const Supplier_master = ({ supplierList }) => {
 };
 
 export async function getServerSideProps(context) {
-  const supplierList = await fetching.get(
-    "http://localhost:3001/supplier/supplierList"
-  );
-
-  return {
-    props: {
-      supplierList: supplierList.data,
-    }, // will be passed to the page component as props
-  };
+  const result = await get_supplierList();
+  console.log(result);
+  if (result.data) {
+    return {
+      props: {
+        supplierList: result.data,
+      }, // will be passed to the page component as props
+    };
+  }
+  console.log(result);
 }
 
 export default Supplier_master;

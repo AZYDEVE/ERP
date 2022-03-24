@@ -4,11 +4,9 @@ import { Form, Formik, Field } from "formik";
 import * as yup from "yup";
 import TextField from "./formComponent/field";
 import SubmitButton from "./formComponent/submitButton";
-import DatePicker from "./formComponent/datePicker";
-import axios from "axios";
-import fetching from "../../util/fetchingUtil";
+
 import Router from "next/router";
-import CustomSelect from "./formComponent/select";
+import { create_supplier } from "../../util/api_call/supplier_api_call";
 
 const customerSchema = yup.object().shape({
   Area: yup.string().required("required!"),
@@ -22,12 +20,12 @@ let initialValue = {
   Area: "",
   Company_name_ch: "",
   Company_name_en: "",
-  Website: "",
   Tel: "",
   Fax: "",
   Zip_Code: "",
   Address: "",
   Remark: "",
+  Tax_number: "",
 };
 
 export default function AddCustomerForm() {
@@ -40,10 +38,7 @@ export default function AddCustomerForm() {
           // same shape as initial values
 
           try {
-            const result = await fetching.post(
-              "http://localhost:3001/customer/createCustomer",
-              values
-            );
+            const result = await create_supplier(values);
           } catch (err) {
             console.log(err);
           }
@@ -57,7 +52,7 @@ export default function AddCustomerForm() {
               xs={12}
               justifyContent="center"
               sx={{ marginTop: "10px" }}>
-              <Typography justifyContent="center">Add New Customer</Typography>
+              <Typography justifyContent="center">Add New Supplier</Typography>
             </Grid>
             <Grid item xs={6}>
               <TextField
@@ -70,18 +65,22 @@ export default function AddCustomerForm() {
             <Grid item xs={6}>
               <TextField name="Company_name_en" label="Company Name English" />
             </Grid>
-            <Grid item xs={3}>
+            <Grid item xs={2.4}>
               <TextField name="Tel" label="Tel" required />
             </Grid>
-            <Grid item xs={3}>
+            <Grid item xs={2.4}>
               <TextField name="Email" label="Email" />
             </Grid>
-            <Grid item xs={3}>
+            <Grid item xs={2.4}>
               <TextField name="Fax" label="Fax" />
             </Grid>
 
-            <Grid item xs={3}>
+            <Grid item xs={2.4}>
               <TextField name="Area" label="Area" required />
+            </Grid>
+
+            <Grid item xs={2.4}>
+              <TextField name="Tax_number" label="Tax_number" required />
             </Grid>
 
             <Grid item xs={10}>
