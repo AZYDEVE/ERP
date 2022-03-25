@@ -4,6 +4,7 @@ import Box from "@mui/material/Box";
 import TableRow from "@mui/material/TableRow";
 import Customer_update_delete_form from "../forms/customer_update_delete_form";
 import Supplier_update_delete_form from "../forms/supplier_update_delete_form";
+import Product_update_delete_form from "../forms/product_update_delete_form";
 
 const style = {
   position: "absolute",
@@ -31,6 +32,8 @@ const ClickableTableRow = ({ children, data, formType }) => {
       case "supplier_update_delete_form":
         return <Supplier_update_delete_form supplierData={data} />;
         break;
+      case "product_update_delete_form":
+        return <Product_update_delete_form productData={data} />;
       default:
         return null;
     }

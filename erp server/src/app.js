@@ -5,8 +5,9 @@ const logger = require("morgan");
 const indexRouter = require(".././routes/index");
 const customer_routes = require("../routes/customer_db");
 const supplier_routes = require("../routes/supplier_db");
+const product_routes = require("../routes/product_db");
 const app = express();
-const db = require("./db/conn");
+
 const cors = require("cors");
 
 app.use(logger("dev"));
@@ -19,5 +20,6 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use("/", indexRouter);
 app.use("/customer", customer_routes);
 app.use("/supplier", supplier_routes);
+app.use("/product", product_routes);
 
 module.exports = app;

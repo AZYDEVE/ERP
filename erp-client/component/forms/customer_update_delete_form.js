@@ -38,7 +38,7 @@ export default function UpdateDeleteCustomerForm({ customerData }) {
     const result = await axios.post(
       "http://localhost:3001/customer/deletecustomer",
       {
-        id: customerData.Id,
+        ID: customerData.ID,
       }
     );
 

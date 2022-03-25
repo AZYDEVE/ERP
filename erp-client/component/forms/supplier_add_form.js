@@ -28,7 +28,7 @@ let initialValue = {
   Tax_number: "",
 };
 
-export default function AddCustomerForm() {
+export default function AddSupplierForm() {
   return (
     <>
       <Formik

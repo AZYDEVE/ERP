@@ -43,7 +43,7 @@ router.post("/deleteCustomer", (req, res) => {
   console.log(req.body.id);
 
   db.query(
-    `DELETE FROM customer WHERE Id=${req.body.id}`,
+    `DELETE FROM customer WHERE ID=${req.body.ID}`,
     (err, result, field) => {
       if (err) {
         console.log(err);
@@ -56,7 +56,7 @@ router.post("/deleteCustomer", (req, res) => {
 router.post("/updateCustomer", (req, res) => {
   let sqlStr = "UPDATE customer SET ";
   Object.keys(req.body).map((key, index) => {
-    if (key !== "Id" && req.body[key] !== null) {
+    if (key !== "ID" && req.body[key] !== null) {
       sqlStr += key + `= "${req.body[key]}",`;
     }
 
@@ -65,7 +65,7 @@ router.post("/updateCustomer", (req, res) => {
     }
   });
 
-  sqlStr = sqlStr.slice(0, -1) + ` Where Id=${req.body.Id}`;
+  sqlStr = sqlStr.slice(0, -1) + ` Where ID=${req.body.ID}`;
 
   db.query(sqlStr, (err, result, feild) => {
     if (err) {

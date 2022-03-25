@@ -2,8 +2,8 @@ const express = require("express");
 const router = express.Router();
 const db = require("../src/db/conn");
 
-router.get("/supplierList", (req, res) => {
-  db.query(`SELECT * FROM supplier`, (err, result, field) => {
+router.get("/productList", (req, res) => {
+  db.query(`SELECT * FROM product`, (err, result, field) => {
     if (err) {
       console.log(err);
       res.send("something went wrong");
@@ -14,13 +14,13 @@ router.get("/supplierList", (req, res) => {
   });
 });
 
-router.post("/createSupplier", (req, res) => {
+router.post("/createProduct", (req, res) => {
   const sql_fields = Object.keys(req.body).toString();
   const sql_values = Object.values(req.body);
 
   console.log(sql_values);
   db.query(
-    `INSERT INTO supplier (${sql_fields}) VALUES (?)`,
+    `INSERT INTO product (${sql_fields}) VALUES (?)`,
     [sql_values],
     (err, result, field) => {
       if (err) {
@@ -34,9 +34,10 @@ router.post("/createSupplier", (req, res) => {
   );
 });
 
-router.post("/deleteSupplier", (req, res) => {
+router.post("/deleteProduct", (req, res) => {
+  console.log(req.body.id);
   db.query(
-    `DELETE FROM supplier WHERE ID=${req.body.ID}`,
+    `DELETE FROM product WHERE ID=${req.body.ID}`,
     (err, result, field) => {
       if (err) {
         console.log(err);
@@ -47,8 +48,8 @@ router.post("/deleteSupplier", (req, res) => {
   );
 });
 
-router.post("/updateSupplier", (req, res) => {
-  let sqlStr = "UPDATE supplier SET ";
+router.post("/updateProduct", (req, res) => {
+  let sqlStr = "UPDATE product SET ";
   Object.keys(req.body).map((key, index) => {
     if (key !== "ID" && req.body[key] !== null) {
       sqlStr += key + `= "${req.body[key]}",`;

@@ -10,9 +10,11 @@ import {
   Grid,
   Typography,
 } from "@mui/material";
-import ModalAddCustomer from "../../component/modal/customer_add_modal";
+
 import ClickableTableRow from "../../component/tableComponent/tableRow_custom";
 import { get_customer_list } from "../../util/api_call/customer_api_call";
+import CustomModal from "../../component/modal/custom_modal";
+import AddCustomerForm from "../../component/forms/customer_add_form";
 
 const Customer_master = ({ customerList }) => {
   const tableContainer = {
@@ -69,7 +71,7 @@ const Customer_master = ({ customerList }) => {
                     data={row}
                     formType="customer_update_delete_form">
                     <TableCell component="th" scope="row">
-                      {"ABC0" + row.Id}
+                      {"ABC0" + row.ID}
                     </TableCell>
                     <TableCell align="left">{row.Company_name_ch}</TableCell>
                     <TableCell align="left">{row.Address}</TableCell>
@@ -81,7 +83,9 @@ const Customer_master = ({ customerList }) => {
           </Container>
         </Grid>
         <Grid item xs={2}>
-          <ModalAddCustomer justifyContent="left" />
+          <CustomModal addButtonText="ADD CUSTOMER">
+            <AddCustomerForm />
+          </CustomModal>
         </Grid>
       </Grid>
     </>

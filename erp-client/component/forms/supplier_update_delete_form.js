@@ -8,7 +8,7 @@ import { useState } from "react";
 import { Button } from "@mui/material/";
 
 import Router from "next/router";
-import moment from "moment";
+
 import {
   delete_supplier,
   update_supplier,
@@ -36,7 +36,7 @@ export default function UpdateDeleteSupplierForm({ supplierData }) {
   const deleteCustomer = async () => {
     console.log(supplierData);
     const result = await delete_supplier({
-      id: supplierData.id,
+      ID: supplierData.ID,
     });
 
     Router.reload(window.location.pathname);
