@@ -3,7 +3,7 @@ const router = express.Router();
 const db = require("../src/db/conn");
 
 router.get("/productList", (req, res) => {
-  db.query(`SELECT * FROM product`, (err, result, field) => {
+  db.query(`SELECT * FROM erp_db.product`, (err, result, field) => {
     if (err) {
       console.log(err);
       res.send("something went wrong");
@@ -20,7 +20,7 @@ router.post("/createProduct", (req, res) => {
 
   console.log(sql_values);
   db.query(
-    `INSERT INTO product (${sql_fields}) VALUES (?)`,
+    `INSERT INTO erp_db.product (${sql_fields}) VALUES (?)`,
     [sql_values],
     (err, result, field) => {
       if (err) {
@@ -37,7 +37,7 @@ router.post("/createProduct", (req, res) => {
 router.post("/deleteProduct", (req, res) => {
   console.log(req.body.id);
   db.query(
-    `DELETE FROM product WHERE ID=${req.body.ID}`,
+    `DELETE FROM erp_db.product WHERE ID=${req.body.ID}`,
     (err, result, field) => {
       if (err) {
         console.log(err);
@@ -49,7 +49,7 @@ router.post("/deleteProduct", (req, res) => {
 });
 
 router.post("/updateProduct", (req, res) => {
-  let sqlStr = "UPDATE product SET ";
+  let sqlStr = "UPDATE erp_db.product SET ";
   Object.keys(req.body).map((key, index) => {
     if (key !== "ID" && req.body[key] !== null) {
       sqlStr += key + `= "${req.body[key]}",`;

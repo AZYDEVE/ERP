@@ -17,6 +17,11 @@ const TextFieldWrapper = ({ name, ...otherProps }) => {
     configTextField.helperText = mata.error;
   }
 
-  return <TextField {...configTextField} />;
+  return (
+    <TextField
+      {...configTextField}
+      InputLabelProps={field.value ? { shrink: true } : { shrink: false }}
+    />
+  );
 };
 export default TextFieldWrapper;

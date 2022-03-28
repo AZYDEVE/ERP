@@ -8,7 +8,7 @@ import SubmitButton from "./formComponent/submitButton";
 import Router from "next/router";
 import { create_supplier } from "../../util/api_call/supplier_api_call";
 
-const customerSchema = yup.object().shape({
+const supplierSchema = yup.object().shape({
   Area: yup.string().required("required!"),
   email: yup.string().email("invalid email format"),
   Company_name_ch: yup.string().required("required!"),
@@ -33,7 +33,7 @@ export default function AddSupplierForm() {
     <>
       <Formik
         initialValues={{ ...initialValue }}
-        validationSchema={customerSchema}
+        validationSchema={supplierSchema}
         onSubmit={async (values) => {
           // same shape as initial values
 
