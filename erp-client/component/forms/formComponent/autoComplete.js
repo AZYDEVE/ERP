@@ -43,6 +43,11 @@ const CustomAutocomplete = ({
     <Autocomplete
       {...configSelect}
       // value={field.value}
+      inputValue={field.value ? field.value[selectionLable] : ""}
+      isOptionEqualToValue={(option, value) => {
+        // console.log("option====>", option, "value====>", value);
+        return option.id === value.id;
+      }}
       disablePortal
       options={option} // Option is for injecting the object data to the selection field
       getOptionLabel={(option) => option[selectionLable]} // getOptionLabel indicates which attribute in the object should be used to display the selections
