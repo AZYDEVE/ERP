@@ -16,7 +16,7 @@ import { Transition } from "react-transition-group";
 import TextFieldWrapper from "../../component/forms/formComponent/field";
 import DatePicker from "../../component/forms/formComponent/datePicker";
 import Selector from "../../component/forms/formComponent/select";
-import { Form, Formik } from "formik";
+import { FieldArray, Form, Formik } from "formik";
 
 import * as yup from "yup";
 import moment from "moment";
@@ -82,7 +82,13 @@ export default function CreatePo() {
     );
   }
 
-  const generateProductList = (values, index, formikOBJ) => {
+  const generateProductList = (
+    values,
+    index,
+    formikArrayHelperFunction,
+    formikValues
+  ) => {
+    console.log(formikValues.orderProduct[index]);
     return (
       <Grid
         container
@@ -108,19 +114,19 @@ export default function CreatePo() {
           <Grid container spacing={1.5}>
             <Grid item xs={3.5}>
               <CustomAutocomplete
-                name={`orderProduct[${index}].PartID`}
+                name={`orderProduct[${index}].product`}
                 titlelable="Part Number"
                 selectionLable="PartNumber"
-                recordValueField="ID"
+                recordValueField={`orderProduct[${index}].product`}
                 option={productList}
               />
             </Grid>
             <Grid item xs={3.5}>
               <CustomAutocomplete
-                name={`orderProduct[${index}].customerID`}
+                name={`orderProduct[${index}].customer`}
                 titlelable="Customer Name"
                 selectionLable="Company_name_ch"
-                recordValueField="ID"
+                recordValueField={`orderProduct[${index}].customer`}
                 option={customerList}
               />
             </Grid>
@@ -214,19 +220,13 @@ export default function CreatePo() {
             alignItems: "center",
           }}>
           <Grid container>
-            <Grid item xs={6} sx={{ "& :hover": { color: "green" } }}>
-              <AddIcon
-                formikOBJ={formikOBJ}
-                name="orderProduct"
-                index={index}
-                sx={{
-                  fontSize: "50px",
-                  color: " primary.main",
+            <Grid item xs={6} sx={{ "& :hover": { color: "red" } }}>
+              <MinusIcon
+                sx={{ fontSize: "50px" }}
+                onClick={() => {
+                  formikArrayHelperFunction.remove(index);
                 }}
               />
-            </Grid>
-            <Grid item xs={6} sx={{ "& :hover": { color: "red" } }}>
-              <MinusIcon sx={{ fontSize: "50px" }} />
             </Grid>
           </Grid>
         </Grid>
@@ -240,7 +240,7 @@ export default function CreatePo() {
       initialValues={{
         ...selectedSupplier,
         PoDate: moment(new Date()).format("YYYY-MM-DD"),
-        orderProduct: [{}, {}, {}],
+        orderProduct: [],
       }}
       validationSchema={customerSchema}
       onSubmit={async (values) => {
@@ -370,9 +370,34 @@ export default function CreatePo() {
                       />
                     </Grid>
                   </Grid>
-                  {values.orderProduct.map((value, index) => {
-                    return generateProductList(value, index, values);
-                  })}
+                  <FieldArray
+                    name="orderProduct"
+                    render={(arrayHelper) => {
+                      return (
+                        <>
+                          {values.orderProduct.map((value, index) => {
+                            return generateProductList(
+                              value,
+                              index,
+                              arrayHelper,
+                              values
+                            );
+                          })}
+                          <Grid container>
+                            <AddIcon
+                              sx={{
+                                fontSize: "50px",
+                                color: " primary.main",
+                              }}
+                              onClick={() => {
+                                arrayHelper.push({});
+                              }}
+                            />
+                          </Grid>
+                        </>
+                      );
+                    }}
+                  />
                 </Collapse>
               </Grid>
               {printsomething()}
