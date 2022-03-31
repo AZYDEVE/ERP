@@ -9,8 +9,6 @@ const CustomSelect = ({ name, options, ...otherProps }) => {
     setFieldValue(name, event.target.value);
   };
 
-  console.log(field);
-
   const configSelect = {
     ...field,
 

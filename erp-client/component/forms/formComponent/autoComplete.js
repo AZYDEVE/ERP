@@ -1,5 +1,6 @@
 import { useFormikContext, useField } from "formik";
 import { Autocomplete, TextField } from "@mui/material";
+import { useState } from "react";
 
 const CustomAutocomplete = ({
   name,
@@ -12,6 +13,7 @@ const CustomAutocomplete = ({
 }) => {
   const [field, meta] = useField(name);
   const { setFieldValue } = useFormikContext();
+  const [touched, setTouched] = useState(false);
 
   //setFieldValue is a function for setting the values to the //formik submition object,
   // the "recordValuefield" indicate which option attibute should update the submition object
@@ -39,11 +41,6 @@ const CustomAutocomplete = ({
     onChange: hangleChange,
   };
 
-  if (meta && meta.error && meta.touched) {
-    (configSelect.error = true), (configSelect.helperText = meta.error);
-  }
-
-  console.log(field.value);
   return (
     <Autocomplete
       {...configSelect}
@@ -57,7 +54,17 @@ const CustomAutocomplete = ({
       options={option} // Option is for injecting the object data to the selection field
       getOptionLabel={(option) => option[selectionLabel]} // getOptionLabel indicates which attribute in the object should be used to display the selections
       renderInput={(params) => {
-        return <TextField {...params} label={titlelabel} />; // render the inputlabel props, the titlelable is passed in from outside
+        return (
+          <TextField
+            {...params}
+            onClick={() => {
+              setTouched(true);
+            }}
+            error={meta && meta.error && touched ? true : false}
+            helperText={meta && meta.error && touched ? "this required" : ""}
+            label={titlelabel}
+          />
+        ); // render the inputlabel props, the titlelable is passed in from outside
       }}
     />
   );

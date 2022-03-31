@@ -6,7 +6,6 @@ import { useState, useEffect } from "react";
 const TextFieldWrapper = ({ name, ...otherProps }) => {
   const [field, mata] = useField(name);
 
-  console.log(field);
   const configTextField = {
     ...field,
 

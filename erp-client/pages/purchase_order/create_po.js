@@ -9,7 +9,6 @@ import {
   Button,
   Box,
 } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
 
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import { get_supplierList } from "../../util/api_call/supplier_api_call";
@@ -19,18 +18,44 @@ import { Transition } from "react-transition-group";
 import TextFieldWrapper from "../../component/forms/formComponent/field";
 import DatePicker from "../../component/forms/formComponent/datePicker";
 import Selector from "../../component/forms/formComponent/select";
+import SubmitButtom from "../../component/forms/formComponent/submitButton";
 import { FieldArray, Form, Formik } from "formik";
-
 import * as yup from "yup";
 import moment from "moment";
-
 import CustomAutocomplete from "../../component/forms/formComponent/autoComplete";
-import { borderRadius } from "@mui/system";
+
 export default function CreatePo() {
-  const customerSchema = yup.object().shape({
+  const validationSchema = yup.object().shape({
     Company_name_ch: yup.string().required("required!"),
     Tel: yup.number().integer("no decimal").required("required!"),
     Address: yup.string().required("required!"),
+    ID: yup.number().required("required!"),
+    Currency: yup.string().required("required!"),
+    orderProduct: yup.array().of(
+      yup.object().shape({
+        Application: yup.object().shape({
+          value: yup.string().required("required"),
+        }),
+        BurnOption: yup.object().shape({
+          value: yup.string().required("required"),
+        }),
+        ETD: yup.date().required("required"),
+        Packaging: yup.object().shape({
+          value: yup.string().required("required"),
+        }),
+        QTY: yup.number().required("required"),
+        UnitCost: yup.number().required("required"),
+        customer: yup.object().shape({
+          Company_name_ch: yup.string().required("required!"),
+        }),
+        product: yup.object().shape({
+          PartNumber: yup.string().required("required"),
+        }),
+        unitMeasure: yup.object().shape({
+          value: yup.string().required("required"),
+        }),
+      })
+    ),
   });
 
   const [suppliers, setSupplier] = useState(null);
@@ -73,7 +98,6 @@ export default function CreatePo() {
 
   const calculateTotalCost = (values, index) => {
     if (values) {
-      console.log(values);
       return values.QTY * values.UnitCost;
     }
     return 0;
@@ -93,7 +117,6 @@ export default function CreatePo() {
     formikArrayHelperFunction,
     formikValues
   ) => {
-    console.log(formikValues.orderProduct[index]);
     return (
       <Grid
         container
@@ -264,7 +287,7 @@ export default function CreatePo() {
             alignItems: "center",
           }}>
           <RemoveCircleOutlineIcon
-            sx={{ fontSize: "2.5rem", cursor: "pointer" }}
+            sx={{ fontSize: "2.1rem", cursor: "pointer" }}
             onClick={() => {
               formikArrayHelperFunction.remove(index);
             }}
@@ -283,23 +306,20 @@ export default function CreatePo() {
         PoDate: moment(new Date()).format("YYYY-MM-DD"),
         orderProduct: [],
       }}
-      validationSchema={customerSchema}
+      validationSchema={validationSchema}
       onSubmit={async (values) => {
         // same shape as initial values
 
         try {
-          const result = await create_product(values);
+          console.log(values);
         } catch (err) {
           console.log(err);
         }
 
-        Router.reload(window.location.pathname);
+        // Router.reload(window.location.pathname);
       }}>
-      {({ values }) => {
-        const printsomething = () => {
-          console.log(values);
-        };
-
+      {({ values, ...others }) => {
+        console.log(others);
         return (
           <Form>
             <Container>
@@ -424,28 +444,44 @@ export default function CreatePo() {
                               values
                             );
                           })}
-                          <Grid container justifyContent="center" mt={2}>
-                            <Button
-                              primary
-                              variant="contained"
-                              size="large"
-                              sx={{}}
-                              onClick={() => {
-                                arrayHelper.push({
-                                  Application: { value: "" },
-                                  BurnOption: { value: "" },
-                                  ETD: "",
-                                  Packaging: { value: "" },
-                                  QTY: "",
-                                  UnitCost: "",
-                                  customer: "",
-                                  product: "",
-                                  remark: "",
-                                  unitMeasure: { value: "" },
-                                });
-                              }}>
-                              Add Item
-                            </Button>
+                          <Grid
+                            container
+                            justifyContent="center"
+                            mt={2}
+                            spacing={2}>
+                            {values.orderProduct.length > 0 ? (
+                              <Grid item>
+                                <SubmitButtom
+                                  variant="contained"
+                                  size="large"
+                                  sx={{ color: "red" }}>
+                                  Submit
+                                </SubmitButtom>
+                              </Grid>
+                            ) : null}
+                            <Grid item>
+                              <Button
+                                primary
+                                variant="contained"
+                                size="large"
+                                sx={{}}
+                                onClick={() => {
+                                  arrayHelper.push({
+                                    Application: { value: "" },
+                                    BurnOption: { value: "" },
+                                    ETD: "",
+                                    Packaging: { value: "" },
+                                    QTY: "",
+                                    UnitCost: "",
+                                    customer: "",
+                                    product: "",
+                                    remark: "",
+                                    unitMeasure: { value: "" },
+                                  });
+                                }}>
+                                Add Item
+                              </Button>
+                            </Grid>
                           </Grid>
                         </>
                       );
@@ -453,7 +489,6 @@ export default function CreatePo() {
                   />
                 </Collapse>
               </Grid>
-              {printsomething()}
             </Container>
           </Form>
         );

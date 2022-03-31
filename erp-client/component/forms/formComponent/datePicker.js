@@ -23,10 +23,11 @@ const DatePicker = ({ name, ...otherProps }) => {
     },
   };
 
-  if (meta && meta.error && meta.touch) {
+  if (meta && meta.error && meta.touched) {
     configureDatePicker.error = true;
     configureDatePicker.helperText = meta.error;
   }
+
   return <TextField {...configureDatePicker} />;
 };
 export default DatePicker;
