@@ -9,7 +9,7 @@ const DatePicker = ({ name, ...otherProps }) => {
     if (field.value) {
       return moment(field.value).format("YYYY-MM-DD") + "";
     }
-    return null;
+    return "";
   };
 
   const configureDatePicker = {

@@ -1,12 +1,15 @@
 import React from "react";
 import { TextField } from "@mui/material";
 import { useField } from "formik";
+import { useState, useEffect } from "react";
 
 const TextFieldWrapper = ({ name, ...otherProps }) => {
   const [field, mata] = useField(name);
 
+  console.log(field);
   const configTextField = {
     ...field,
+
     ...otherProps,
     fullWidth: true,
     variant: "outlined",
@@ -17,11 +20,6 @@ const TextFieldWrapper = ({ name, ...otherProps }) => {
     configTextField.helperText = mata.error;
   }
 
-  return (
-    <TextField
-      {...configTextField}
-      InputLabelProps={field.value ? { shrink: true } : { shrink: false }}
-    />
-  );
+  return <TextField {...configTextField} InputLabelProps={{ shrink: true }} />;
 };
 export default TextFieldWrapper;

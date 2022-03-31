@@ -9,8 +9,11 @@ const CustomSelect = ({ name, options, ...otherProps }) => {
     setFieldValue(name, event.target.value);
   };
 
+  console.log(field);
+
   const configSelect = {
     ...field,
+
     ...otherProps,
     select: true,
     varient: "outlined",
@@ -23,7 +26,7 @@ const CustomSelect = ({ name, options, ...otherProps }) => {
   }
 
   return (
-    <TextField {...configSelect}>
+    <TextField {...configSelect} InputLabelProps={{ shrink: true }}>
       {options.map((value, pos) => {
         return (
           <MenuItem value={value} key={pos}>

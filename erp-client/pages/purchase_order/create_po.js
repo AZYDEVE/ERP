@@ -2,13 +2,16 @@ import { useEffect, useState } from "react";
 import {
   Container,
   Grid,
-  Autocomplete,
   Collapse,
   TextField,
+  Autocomplete,
   Typography,
+  Button,
+  Box,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import MinusIcon from "@mui/icons-material/RemoveTwoTone";
+
+import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import { get_supplierList } from "../../util/api_call/supplier_api_call";
 import { get_productList } from "../../util/api_call/product_api_call";
 import { get_customer_list } from "../../util/api_call/customer_api_call";
@@ -22,6 +25,7 @@ import * as yup from "yup";
 import moment from "moment";
 
 import CustomAutocomplete from "../../component/forms/formComponent/autoComplete";
+import { borderRadius } from "@mui/system";
 export default function CreatePo() {
   const customerSchema = yup.object().shape({
     Company_name_ch: yup.string().required("required!"),
@@ -82,6 +86,7 @@ export default function CreatePo() {
     );
   }
 
+  //************************************order detail form***********************************/
   const generateProductList = (
     values,
     index,
@@ -98,7 +103,9 @@ export default function CreatePo() {
           border: 1,
           borderColor: "primary.main",
           borderRadius: 4,
-          paddingBottom: 1,
+          paddingBottom: 2,
+          paddingTop: 1,
+          transform: "scale(0.93)",
         }}>
         <Grid
           item
@@ -108,44 +115,72 @@ export default function CreatePo() {
             justifyContent: "center",
             alignItems: "center",
           }}>
-          <Typography>{index + 1}</Typography>
+          <Box
+            sx={{
+              width: "60%",
+              height: "auto",
+              background: "black",
+              borderRadius: "100%",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+            }}>
+            <Typography color="white">{index + 1}</Typography>
+          </Box>
         </Grid>
-        <Grid item xs={10}>
+        <Grid item xs={10.5}>
           <Grid container spacing={1.5}>
             <Grid item xs={3.5}>
               <CustomAutocomplete
                 name={`orderProduct[${index}].product`}
-                titlelable="Part Number"
-                selectionLable="PartNumber"
+                titlelabel="Part Number"
+                selectionLabel="PartNumber"
                 recordValueField={`orderProduct[${index}].product`}
+                optionalSetValueforOtherfields={{
+                  name: `orderProduct[${index}].UnitCost`,
+                  field: "Cost",
+                }}
                 option={productList}
               />
             </Grid>
             <Grid item xs={3.5}>
               <CustomAutocomplete
                 name={`orderProduct[${index}].customer`}
-                titlelable="Customer Name"
-                selectionLable="Company_name_ch"
+                titlelabel="Customer Name"
+                selectionLabel="Company_name_ch"
                 recordValueField={`orderProduct[${index}].customer`}
                 option={customerList}
               />
             </Grid>
 
             <Grid item xs={2}>
-              <Selector
+              <CustomAutocomplete
                 fullWidth
                 name={`orderProduct[${index}].Application`}
-                label="Application"
-                defaultValue=""
-                options={["", "Car", "TV", "home"]}></Selector>
+                titlelabel="Application"
+                selectionLabel="value"
+                recordValueField={`orderProduct[${index}].Application`}
+                option={[
+                  { value: "None" },
+                  { value: "Car" },
+                  { value: "TV" },
+                  { value: "home" },
+                ]}
+              />
             </Grid>
             <Grid item xs={3}>
-              <Selector
+              <CustomAutocomplete
                 fullWidth
                 name={`orderProduct[${index}].BurnOption`}
-                label="Burn Option"
-                defaultValue=""
-                options={[null, "burn", "noburn"]}></Selector>
+                titlelabel="Option"
+                selectionLabel="value"
+                recordValueField={`orderProduct[${index}].BurnOption`}
+                option={[
+                  { value: "None" },
+                  { value: "burn" },
+                  { value: "not-burn" },
+                ]}
+              />
             </Grid>
             <Grid item xs={2.5}>
               <DatePicker
@@ -155,12 +190,19 @@ export default function CreatePo() {
               />
             </Grid>
             <Grid item xs={2}>
-              <Selector
+              <CustomAutocomplete
                 fullWidth
                 name={`orderProduct[${index}].Packaging`}
-                label="Packaging"
-                defaultValue=""
-                options={["SM", "M", "L"]}></Selector>
+                titlelabel="pkg"
+                selectionLabel="value"
+                recordValueField={`orderProduct[${index}].Packaging`}
+                option={[
+                  { value: "None" },
+                  { value: "S" },
+                  { value: "M" },
+                  { value: "L" },
+                ]}
+              />
             </Grid>
 
             <Grid item xs={2.5}>
@@ -172,12 +214,14 @@ export default function CreatePo() {
               />
             </Grid>
             <Grid item xs={1.5}>
-              <Selector
+              <CustomAutocomplete
                 fullWidth
                 name={`orderProduct[${index}].unitMeasure`}
-                label="U.M"
-                defaultValue=""
-                options={[null, "PCS", "BOX"]}></Selector>
+                titlelabel="U.M"
+                selectionLabel="value"
+                recordValueField={`orderProduct[${index}].unitMeasure`}
+                option={[{ value: "None" }, { value: "PCS" }, { value: "BOX" }]}
+              />
             </Grid>
             <Grid item xs={1.5}>
               <TextFieldWrapper
@@ -212,28 +256,25 @@ export default function CreatePo() {
         </Grid>
         <Grid
           item
-          xs={1.5}
+          xs={1}
           sx={{
+            "& :hover": { color: "red" },
             display: "flex",
-
             justifyContent: "center",
             alignItems: "center",
           }}>
-          <Grid container>
-            <Grid item xs={6} sx={{ "& :hover": { color: "red" } }}>
-              <MinusIcon
-                sx={{ fontSize: "50px" }}
-                onClick={() => {
-                  formikArrayHelperFunction.remove(index);
-                }}
-              />
-            </Grid>
-          </Grid>
+          <RemoveCircleOutlineIcon
+            sx={{ fontSize: "2.5rem", cursor: "pointer" }}
+            onClick={() => {
+              formikArrayHelperFunction.remove(index);
+            }}
+          />
         </Grid>
       </Grid>
     );
   };
 
+  // **********************************customer form***************************************************
   return (
     <Formik
       enableReinitialize
@@ -303,7 +344,7 @@ export default function CreatePo() {
                 </Grid>
 
                 <Collapse in={selected} timeout={800} easing="linear">
-                  <Grid container spacing={1} mt={0.5}>
+                  <Grid container spacing={1.5} mt={0.5}>
                     <Grid item xs={2}>
                       <TextFieldWrapper
                         fullWidth
@@ -383,16 +424,28 @@ export default function CreatePo() {
                               values
                             );
                           })}
-                          <Grid container>
-                            <AddIcon
-                              sx={{
-                                fontSize: "50px",
-                                color: " primary.main",
-                              }}
+                          <Grid container justifyContent="center" mt={2}>
+                            <Button
+                              primary
+                              variant="contained"
+                              size="large"
+                              sx={{}}
                               onClick={() => {
-                                arrayHelper.push({});
-                              }}
-                            />
+                                arrayHelper.push({
+                                  Application: { value: "" },
+                                  BurnOption: { value: "" },
+                                  ETD: "",
+                                  Packaging: { value: "" },
+                                  QTY: "",
+                                  UnitCost: "",
+                                  customer: "",
+                                  product: "",
+                                  remark: "",
+                                  unitMeasure: { value: "" },
+                                });
+                              }}>
+                              Add Item
+                            </Button>
                           </Grid>
                         </>
                       );

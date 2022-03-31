@@ -3,12 +3,11 @@ import { Autocomplete, TextField } from "@mui/material";
 
 const CustomAutocomplete = ({
   name,
-  titlelable,
-  selectionLable,
+  titlelabel,
+  selectionLabel,
   recordValueField,
   option,
-  setProductState,
-
+  optionalSetValueforOtherfields,
   ...otherProps
 }) => {
   const [field, meta] = useField(name);
@@ -22,9 +21,14 @@ const CustomAutocomplete = ({
     } else {
       setFieldValue(recordValueField, "");
     }
-  };
 
-  console.log(field);
+    if (optionalSetValueforOtherfields) {
+      setFieldValue(
+        optionalSetValueforOtherfields.name,
+        value ? value[optionalSetValueforOtherfields.field] : ""
+      );
+    }
+  };
 
   const configSelect = {
     ...field,
@@ -38,21 +42,22 @@ const CustomAutocomplete = ({
   if (meta && meta.error && meta.touched) {
     (configSelect.error = true), (configSelect.helperText = meta.error);
   }
-  console.log(field);
+
+  console.log(field.value);
   return (
     <Autocomplete
       {...configSelect}
-      // value={field.value}
-      inputValue={field.value ? field.value[selectionLable] : ""}
+      value={field.value ? field.value : null}
+      // inputValue={field.value ? field.value[selectionLable] : ""}
       isOptionEqualToValue={(option, value) => {
         // console.log("option====>", option, "value====>", value);
         return option.id === value.id;
       }}
       disablePortal
       options={option} // Option is for injecting the object data to the selection field
-      getOptionLabel={(option) => option[selectionLable]} // getOptionLabel indicates which attribute in the object should be used to display the selections
+      getOptionLabel={(option) => option[selectionLabel]} // getOptionLabel indicates which attribute in the object should be used to display the selections
       renderInput={(params) => {
-        return <TextField {...params} label={titlelable} />; // render the inputlabel props, the titlelable is passed in from outside
+        return <TextField {...params} label={titlelabel} />; // render the inputlabel props, the titlelable is passed in from outside
       }}
     />
   );
