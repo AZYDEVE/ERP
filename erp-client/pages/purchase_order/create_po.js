@@ -10,6 +10,8 @@ import {
   Box,
 } from "@mui/material";
 
+import Swal from "sweetalert2";
+
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import { get_supplierList } from "../../util/api_call/supplier_api_call";
 import { get_productList } from "../../util/api_call/product_api_call";
@@ -89,12 +91,14 @@ export default function CreatePo() {
   }, []);
 
   const SelectVendorBtnStyle = {
-    width: 300,
+    width: 385,
     transition: `transform 500ms linear`,
   };
 
   const transitionStyle = {
-    entered: { transform: "translateX(-48.5vh)" },
+    entered: {
+      transform: "translateX(-106%)",
+    },
   };
 
   const calculateTotalCost = (values, index) => {

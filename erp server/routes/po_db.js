@@ -56,6 +56,7 @@ router.post("/createPo", (req, res) => {
               if (error) {
                 return connection.rollback(function () {
                   connection.release();
+                  res.status(500).send(error);
                   throw error;
                 });
               }
@@ -63,10 +64,12 @@ router.post("/createPo", (req, res) => {
                 if (err) {
                   return connection.rollback(function () {
                     connection.release();
+                    res.status(500).send(err);
                     throw err;
                   });
                 } else {
                   connection.release();
+                  res.status(200).json({ data: insertPoID });
                   console.log("success!");
                 }
               });
