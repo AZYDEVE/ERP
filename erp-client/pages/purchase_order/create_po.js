@@ -23,6 +23,7 @@ import { FieldArray, Form, Formik } from "formik";
 import * as yup from "yup";
 import moment from "moment";
 import CustomAutocomplete from "../../component/forms/formComponent/autoComplete";
+import { create_po } from "../../util/api_call/po_api_call";
 
 export default function CreatePo() {
   const validationSchema = yup.object().shape({
@@ -312,6 +313,7 @@ export default function CreatePo() {
 
         try {
           console.log(values);
+          create_po(values);
         } catch (err) {
           console.log(err);
         }
@@ -319,7 +321,6 @@ export default function CreatePo() {
         // Router.reload(window.location.pathname);
       }}>
       {({ values, ...others }) => {
-        console.log(others);
         return (
           <Form>
             <Container>
@@ -344,9 +345,6 @@ export default function CreatePo() {
                         }}
                         options={suppliers}
                         getOptionLabel={(option) => option.Company_name_ch}
-                        // getOptionSelected={(option, value) =>
-                        //   option.ID === value.ID
-                        // } // Prevents warning
                         renderInput={(params) => (
                           <TextField {...params} label="Vendor" />
                         )}
@@ -370,7 +368,7 @@ export default function CreatePo() {
                         fullWidth
                         name="ID"
                         label="Vendor ID"
-                        required
+                        disabled
                       />
                     </Grid>
                     <Grid item xs={2}>
@@ -382,12 +380,17 @@ export default function CreatePo() {
                         fullWidth
                         name="Tel"
                         label="Tel"
-                        required
+                        disabled
                       />
                     </Grid>
 
                     <Grid item xs={2}>
-                      <TextFieldWrapper fullWidth name="Fax" label="Fax" />
+                      <TextFieldWrapper
+                        fullWidth
+                        name="Fax"
+                        label="Fax"
+                        disabled
+                      />
                     </Grid>
 
                     <Grid item xs={2}>
@@ -413,11 +416,15 @@ export default function CreatePo() {
                         fullWidth
                         name="Address"
                         label="Address"
-                        required
+                        disabled
                       />
                     </Grid>
                     <Grid item xs={2}>
-                      <TextFieldWrapper name="Zip_Code" label=" Zip Code" />
+                      <TextFieldWrapper
+                        name="Zip_Code"
+                        label=" Zip Code"
+                        disabled
+                      />
                     </Grid>
 
                     <Grid item xs={12}>

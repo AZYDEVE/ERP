@@ -6,6 +6,7 @@ const indexRouter = require(".././routes/index");
 const customer_routes = require("../routes/customer_db");
 const supplier_routes = require("../routes/supplier_db");
 const product_routes = require("../routes/product_db");
+const po_routes = require("../routes/po_db");
 const app = express();
 
 const cors = require("cors");
@@ -21,5 +22,6 @@ app.use("/", indexRouter);
 app.use("/customer", customer_routes);
 app.use("/supplier", supplier_routes);
 app.use("/product", product_routes);
+app.use("/po", po_routes);
 
 module.exports = app;

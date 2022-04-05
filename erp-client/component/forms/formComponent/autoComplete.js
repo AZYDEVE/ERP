@@ -43,6 +43,7 @@ const CustomAutocomplete = ({
 
   return (
     <Autocomplete
+      clearOnBlur
       {...configSelect}
       value={field.value ? field.value : null}
       // inputValue={field.value ? field.value[selectionLable] : ""}

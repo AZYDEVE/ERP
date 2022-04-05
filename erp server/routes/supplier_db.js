@@ -3,7 +3,7 @@ const router = express.Router();
 const db = require("../src/db/conn");
 
 router.get("/supplierList", (req, res) => {
-  db.query(`SELECT * FROM erp_db.supplier`, (err, result, field) => {
+  db.query(`SELECT * FROM master_db.supplier`, (err, result, field) => {
     if (err) {
       console.log(err);
       res.send("something went wrong");
@@ -20,7 +20,7 @@ router.post("/createSupplier", (req, res) => {
 
   console.log(sql_values);
   db.query(
-    `INSERT INTO erp_db.supplier (${sql_fields}) VALUES (?)`,
+    `INSERT INTO master_db.supplier (${sql_fields}) VALUES (?)`,
     [sql_values],
     (err, result, field) => {
       if (err) {
@@ -36,7 +36,7 @@ router.post("/createSupplier", (req, res) => {
 
 router.post("/deleteSupplier", (req, res) => {
   db.query(
-    `DELETE FROM erp_db.supplier WHERE ID=${req.body.ID}`,
+    `DELETE FROM master_db.supplier WHERE ID=${req.body.ID}`,
     (err, result, field) => {
       if (err) {
         console.log(err);
@@ -48,7 +48,7 @@ router.post("/deleteSupplier", (req, res) => {
 });
 
 router.post("/updateSupplier", (req, res) => {
-  let sqlStr = "UPDATE erp_db.supplier SET ";
+  let sqlStr = "UPDATE master_db.supplier SET ";
   Object.keys(req.body).map((key, index) => {
     if (key !== "ID" && req.body[key] !== null) {
       sqlStr += key + `= "${req.body[key]}",`;

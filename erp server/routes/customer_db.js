@@ -5,7 +5,7 @@ const db = require("../src/db/conn");
 // console.log("the db is:", db);
 router.get("/getConnection_status", (req, res) => {
   db.query(
-    `SELECT * FROM erp_db.customer WHERE Customer_number = 'ABC010005'`,
+    `SELECT * FROM master_db.customer WHERE Customer_number = 'ABC010005'`,
     function (err, results, fields) {
       console.log(results); // results contains rows returned by server
       // console.log(fields); // fields contains extra meta data about results, if available
@@ -15,7 +15,7 @@ router.get("/getConnection_status", (req, res) => {
 });
 
 router.get("/customerlist", (req, res) => {
-  db.query(`SELECT * from erp_db.customer`, (err, results, fields) => {
+  db.query(`SELECT * from master_db.customer`, (err, results, fields) => {
     res.json(results);
   });
 });
@@ -26,7 +26,7 @@ router.post("/createCustomer", (req, res) => {
 
   console.log(sql_values);
   db.query(
-    `INSERT INTO erp_db.customer (${sql_fields}) VALUES (?)`,
+    `INSERT INTO master_db.customer (${sql_fields}) VALUES (?)`,
     [sql_values],
 
     (err, result, fields) => {
@@ -43,7 +43,7 @@ router.post("/deleteCustomer", (req, res) => {
   console.log(req.body.id);
 
   db.query(
-    `DELETE FROM erp_db.customer WHERE ID=${req.body.ID}`,
+    `DELETE FROM master_db.customer WHERE ID=${req.body.ID}`,
     (err, result, field) => {
       if (err) {
         console.log(err);
@@ -54,7 +54,7 @@ router.post("/deleteCustomer", (req, res) => {
 });
 
 router.post("/updateCustomer", (req, res) => {
-  let sqlStr = "UPDATE erp_db.customer SET ";
+  let sqlStr = "UPDATE master_db.customer SET ";
   Object.keys(req.body).map((key, index) => {
     if (key !== "ID" && req.body[key] !== null) {
       sqlStr += key + `= "${req.body[key]}",`;
