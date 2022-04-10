@@ -17,6 +17,7 @@
     "@mui/material": "^5.5.0",
     "@mui/styled-engine-sc": "^5.4.2",
     "@mui/styles": "^5.5.0",
+    "@mui/x-data-grid": "^5.8.0",
     "axios": "^0.26.1",
     "formik": "^2.2.9",
     "moment": "^2.29.1",

@@ -19,6 +19,7 @@ const CustomAutocomplete = ({
   // the "recordValuefield" indicate which option attibute should update the submition object
   const hangleChange = (event, value) => {
     if (value) {
+      console.log(value);
       setFieldValue(recordValueField, value);
     } else {
       setFieldValue(recordValueField, "");

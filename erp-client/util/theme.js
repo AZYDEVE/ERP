@@ -32,6 +32,9 @@ const Theme = createTheme({
       },
     },
   },
+  zIndex: {
+    modal: 2,
+  },
 });
 
 export default Theme;

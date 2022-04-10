@@ -1,5 +1,4 @@
 import axios from "axios";
-import Swal from "sweetalert2";
 
 export const create_po = async (body) => {
   try {
@@ -8,20 +7,43 @@ export const create_po = async (body) => {
       body
     );
 
-    if (result.status == 200) {
-      Swal.fire({
-        title: `SUCCESS`,
-        text: `PO# : ${result.data.data}`,
-        icon: "success",
-        showConfirmButton: true,
-      });
-    }
+    return result;
   } catch (err) {
-    Swal.fire({
-      title: `SOMETHING WENT WRONG `,
-      text: err,
-      icon: "error",
-      showConfirmButton: true,
-    });
+    throw new Error(err);
+  }
+};
+
+export const getListOpenPO = async () => {
+  try {
+    const result = await axios.get(
+      process.env.NEXT_PUBLIC_SERVER_HOST + "/po/getListOpenPo"
+    );
+    return result;
+  } catch (err) {
+    throw new Error(err);
+  }
+};
+
+export const getPo = async (body) => {
+  try {
+    const result = await axios.post(
+      process.env.NEXT_PUBLIC_SERVER_HOST + "/po/getPo",
+      body
+    );
+    return result;
+  } catch (err) {
+    throw new Error(err);
+  }
+};
+
+export const deletePo = async (body) => {
+  try {
+    const result = axios.post(
+      process.env.NEXT_PUBLIC_SERVER_HOST + "/po/deletePo",
+      body
+    );
+    return result;
+  } catch (err) {
+    throw new Error(err);
   }
 };

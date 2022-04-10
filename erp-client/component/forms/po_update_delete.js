@@ -10,26 +10,26 @@ import {
   Box,
   Backdrop,
 } from "@mui/material";
-
+import DeleteIcon from "@mui/icons-material/Delete";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import { get_supplierList } from "../../util/api_call/supplier_api_call";
 import { get_productList } from "../../util/api_call/product_api_call";
 import { get_customer_list } from "../../util/api_call/customer_api_call";
-import { Transition } from "react-transition-group";
+
 import TextFieldWrapper from "../../component/forms/formComponent/field";
 import DatePicker from "../../component/forms/formComponent/datePicker";
 import Selector from "../../component/forms/formComponent/select";
 import SubmitButtom from "../../component/forms/formComponent/submitButton";
 import { FieldArray, Form, Formik } from "formik";
 import * as yup from "yup";
-import moment from "moment";
+
 import CustomAutocomplete from "../../component/forms/formComponent/autoComplete";
-import { create_po } from "../../util/api_call/po_api_call";
+import { create_po, deletePo, getPo } from "../../util/api_call/po_api_call";
 import Router from "next/router";
 import RingLoader from "react-spinners/RingLoader";
 import Swal from "sweetalert2";
 
-export default function CreatePo() {
+export default function PoUpdateDelete({ poInfo }) {
   const validationSchema = yup.object().shape({
     Company_name_ch: yup.string().required("required!"),
     Tel: yup.number().integer("no decimal").required("required!"),
@@ -69,6 +69,7 @@ export default function CreatePo() {
   const [productList, setProductList] = useState(null);
   const [customerList, setCustomerList] = useState(null);
   const [spiner, setSpiner] = useState(false);
+  const [po, setPo] = useState(null);
 
   useEffect(async () => {
     const result = await get_supplierList();
@@ -93,16 +94,14 @@ export default function CreatePo() {
     }
   }, []);
 
-  const SelectVendorBtnStyle = {
-    width: 385,
-    transition: `transform 500ms linear`,
-  };
+  useEffect(async () => {
+    const result = await getPo(poInfo);
+    if (result.data) {
+      console.log(result.data);
 
-  const transitionStyle = {
-    entered: {
-      transform: "translateX(-106%)",
-    },
-  };
+      setPo(result.data);
+    }
+  }, []);
 
   const calculateTotalCost = (values, index) => {
     if (values) {
@@ -110,7 +109,45 @@ export default function CreatePo() {
     }
     return 0;
   };
-  if (!suppliers || !productList) {
+
+  const handleDelete = async () => {
+    const ID = poInfo.poID;
+    Swal.fire({
+      title: `confirm delete PO ${ID}?`,
+      showDenyButton: true,
+      confirmButtonText: "DELETE",
+      denyButtonText: `CANCEL`,
+    }).then(async (result) => {
+      /* Read more about isConfirmed, isDenied below */
+      if (result.isConfirmed) {
+        try {
+          const result = await deletePo({ ID });
+          if (result.data.message == "success") {
+            Swal.fire({
+              title: "success",
+              text: `PO ${ID} is deleted `,
+              icon: "success",
+              showConfirmButton: true,
+            }).then((result) => {
+              if (result.isConfirmed) {
+                Router.reload(window.location.pathname);
+              }
+            });
+          }
+
+          console.log(result);
+        } catch (err) {
+          Swal.fire({
+            title: `SOMETHING WENT WRONG `,
+            text: err,
+            icon: "error",
+            showConfirmButton: true,
+          });
+        }
+      }
+    });
+  };
+  if (!po || !suppliers || !productList || !customerList) {
     return (
       <>
         <h1>Loading</h1>
@@ -247,10 +284,10 @@ export default function CreatePo() {
             <Grid item xs={1.5}>
               <CustomAutocomplete
                 fullWidth
-                name={`orderProduct[${index}].unitMeasure`}
+                name={`orderProduct[${index}].UnitMeasure`}
                 titlelabel="U.M"
                 selectionLabel="value"
-                recordValueField={`orderProduct[${index}].unitMeasure`}
+                recordValueField={`orderProduct[${index}].UnitMeasure`}
                 option={[{ value: "None" }, { value: "PCS" }, { value: "BOX" }]}
               />
             </Grid>
@@ -311,9 +348,7 @@ export default function CreatePo() {
       <Formik
         enableReinitialize
         initialValues={{
-          ...selectedSupplier,
-          PoDate: moment(new Date()).format("YYYY-MM-DD"),
-          orderProduct: [],
+          ...po,
         }}
         validationSchema={validationSchema}
         onSubmit={async (values) => {
@@ -347,139 +382,139 @@ export default function CreatePo() {
           return (
             <Form>
               <Container>
-                <Grid container spacing={3}>
+                <Grid container spacing={0}>
                   <Grid item xs={12} align="center">
-                    <Typography variant="h6">PO Creation</Typography>
+                    <Typography variant="h6">Update PO</Typography>
                   </Grid>
-                  <Grid
-                    item
-                    xs={12}
-                    sx={{
-                      display: "grid",
-                      justifyContent: "center",
-                    }}>
-                    <Transition in={selected} timeout={200}>
-                      {(state) => (
-                        <Autocomplete
-                          disablePortal
-                          sx={{
-                            ...SelectVendorBtnStyle,
-                            ...transitionStyle[state],
-                          }}
-                          options={suppliers}
-                          getOptionLabel={(option) => option.Company_name_ch}
-                          renderInput={(params) => (
-                            <TextField {...params} label="Vendor" />
-                          )}
-                          onChange={(event, value) => {
-                            setSelectedSupplier(value);
-                            if (value) {
-                              setSelected(true);
-                            } else {
-                              setSelected(false);
-                            }
-                          }}
-                        />
+                  <Grid item xs={4} mt={3}>
+                    <Autocomplete
+                      disabled
+                      name="Company_name_ch"
+                      value={values.Company_name_ch}
+                      disablePortal
+                      options={suppliers.map(
+                        (supplier) => supplier.Company_name_ch
                       )}
-                    </Transition>
+                      getOptionLabel={(option) => option}
+                      renderInput={(params) => (
+                        <TextField {...params} label="Vendor" />
+                      )}
+                      onChange={(event, value) => {
+                        setSelectedSupplier(value);
+                        if (value) {
+                          setSelected(true);
+                        } else {
+                          setSelected(false);
+                        }
+                      }}
+                    />
                   </Grid>
 
-                  <Collapse in={selected} timeout={800} easing="linear">
-                    <Grid container spacing={1.5} mt={0.5}>
-                      <Grid item xs={2}>
-                        <TextFieldWrapper
-                          fullWidth
-                          name="ID"
-                          label="Vendor ID"
-                          disabled
-                        />
-                      </Grid>
-                      <Grid item xs={2}>
-                        <DatePicker fullWidth name="PoDate" label="PO Date" />
-                      </Grid>
-
-                      <Grid item xs={2}>
-                        <TextFieldWrapper
-                          fullWidth
-                          name="Tel"
-                          label="Tel"
-                          disabled
-                        />
-                      </Grid>
-
-                      <Grid item xs={2}>
-                        <TextFieldWrapper
-                          fullWidth
-                          name="Fax"
-                          label="Fax"
-                          disabled
-                        />
-                      </Grid>
-
-                      <Grid item xs={2}>
-                        <TextFieldWrapper
-                          fullWidth
-                          name="ContactPerson"
-                          label="Contact Person"
-                        />
-                      </Grid>
-
-                      <Grid item xs={2}>
-                        <Selector
-                          fullWidth
-                          name="Currency"
-                          label="Currency"
-                          defaultValue=""
-                          options={["", "USD", "TWD", "RMB"]}
-                        />
-                      </Grid>
-
-                      <Grid item xs={10} sx={{ width: "100%" }}>
-                        <TextFieldWrapper
-                          fullWidth
-                          name="Address"
-                          label="Address"
-                          disabled
-                        />
-                      </Grid>
-                      <Grid item xs={2}>
-                        <TextFieldWrapper
-                          name="Zip_Code"
-                          label=" Zip Code"
-                          disabled
-                        />
-                      </Grid>
-
-                      <Grid item xs={12}>
-                        <TextFieldWrapper
-                          fullWidth
-                          name="Remark"
-                          label="Remark"
-                          multiline={true}
-                          defaultValue=""
-                          rows={3}
-                        />
-                      </Grid>
+                  <Grid container spacing={1.5} mt={0.5}>
+                    <Grid item xs={2}>
+                      <TextFieldWrapper
+                        fullWidth
+                        name="VendorID"
+                        label="Vendor ID"
+                        disabled
+                      />
                     </Grid>
-                    <FieldArray
-                      name="orderProduct"
-                      render={(arrayHelper) => {
-                        return (
-                          <>
-                            {values.orderProduct.map((value, index) => {
-                              return generateProductList(
-                                value,
-                                index,
-                                arrayHelper,
-                                values
-                              );
-                            })}
-                            <Grid
-                              container
-                              justifyContent="center"
-                              mt={2}
-                              spacing={2}>
-                              {values.orderProduct.length > 0 ? (
+                    <Grid item xs={2}>
+                      <DatePicker fullWidth name="PoDate" label="PO Date" />
+                    </Grid>
+
+                    <Grid item xs={2}>
+                      <TextFieldWrapper
+                        fullWidth
+                        name="Tel"
+                        label="Tel"
+                        disabled
+                      />
+                    </Grid>
+
+                    <Grid item xs={2}>
+                      <TextFieldWrapper
+                        fullWidth
+                        name="Fax"
+                        label="Fax"
+                        disabled
+                      />
+                    </Grid>
+
+                    <Grid item xs={2}>
+                      <TextFieldWrapper
+                        fullWidth
+                        name="ContactPerson"
+                        label="Contact Person"
+                      />
+                    </Grid>
+
+                    <Grid item xs={2}>
+                      <Selector
+                        fullWidth
+                        name="Currency"
+                        label="Currency"
+                        defaultValue=""
+                        options={["", "USD", "TWD", "RMB"]}
+                      />
+                    </Grid>
+
+                    <Grid item xs={10} sx={{ width: "100%" }}>
+                      <TextFieldWrapper
+                        fullWidth
+                        name="Address"
+                        label="Address"
+                        disabled
+                      />
+                    </Grid>
+                    <Grid item xs={2}>
+                      <TextFieldWrapper
+                        name="Zip_Code"
+                        label=" Zip Code"
+                        disabled
+                      />
+                    </Grid>
+
+                    <Grid item xs={12}>
+                      <TextFieldWrapper
+                        fullWidth
+                        name="Remark"
+                        label="Remark"
+                        multiline={true}
+                        defaultValue=""
+                        rows={3}
+                      />
+                    </Grid>
+                  </Grid>
+                  <FieldArray
+                    name="orderProduct"
+                    render={(arrayHelper) => {
+                      return (
+                        <>
+                          {values.orderProduct.map((value, index) => {
+                            return generateProductList(
+                              value,
+                              index,
+                              arrayHelper,
+                              values
+                            );
+                          })}
+                          <Grid
+                            container
+                            justifyContent="center"
+                            mt={2}
+                            spacing={2}>
+                            {values.orderProduct.length > 0 ? (
+                              <>
+                                <Grid item>
+                                  <Button
+                                    variant="contained"
+                                    size="large"
+                                    sx={{ color: "red" }}
+                                    onClick={handleDelete}>
+                                    <DeleteIcon />
+                                  </Button>
+                                </Grid>
                                 <Grid item>
                                   <SubmitButtom
                                     variant="contained"
@@ -488,36 +523,36 @@ export default function CreatePo() {
                                     Submit
                                   </SubmitButtom>
                                 </Grid>
-                              ) : null}
-                              <Grid item>
-                                <Button
-                                  primary
-                                  variant="contained"
-                                  size="large"
-                                  sx={{}}
-                                  onClick={() => {
-                                    arrayHelper.push({
-                                      Application: { value: "" },
-                                      BurnOption: { value: "" },
-                                      ETD: "",
-                                      Packaging: { value: "" },
-                                      QTY: "",
-                                      UnitCost: "",
-                                      customer: "",
-                                      product: "",
-                                      remark: "",
-                                      unitMeasure: { value: "" },
-                                    });
-                                  }}>
-                                  Add Item
-                                </Button>
-                              </Grid>
+                              </>
+                            ) : null}
+                            <Grid item>
+                              <Button
+                                primary
+                                variant="contained"
+                                size="large"
+                                sx={{}}
+                                onClick={() => {
+                                  arrayHelper.push({
+                                    Application: { value: "" },
+                                    BurnOption: { value: "" },
+                                    ETD: "",
+                                    Packaging: { value: "" },
+                                    QTY: "",
+                                    UnitCost: "",
+                                    customer: "",
+                                    product: "",
+                                    remark: "",
+                                    unitMeasure: { value: "" },
+                                  });
+                                }}>
+                                Add Item
+                              </Button>
                             </Grid>
-                          </>
-                        );
-                      }}
-                    />
-                  </Collapse>
+                          </Grid>
+                        </>
+                      );
+                    }}
+                  />
                 </Grid>
               </Container>
             </Form>
