@@ -1,10 +1,14 @@
-import { DataGrid } from "@mui/x-data-grid";
+import {
+  DataGrid,
+  GridToolbarExport,
+  GridToolbarContainer,
+} from "@mui/x-data-grid";
 import RingLoader from "react-spinners/RingLoader";
 import { useEffect, useState } from "react";
 import { Grid, Backdrop, Typography, Box, Modal } from "@mui/material";
 import { getListOpenPO } from "../../util/api_call/po_api_call";
 import Swal from "sweetalert2";
-import PoUpdateDelete from "../../component/forms/po_update_delete";
+import Receiving from "../../component/forms/receiveGoods_form";
 
 const Polist = () => {
   const [poList, setPoList] = useState("");
@@ -37,7 +41,7 @@ const Polist = () => {
         field: keyName,
         headerName: keyName,
         width: keyName == "id" ? 100 : 200,
-        headerClassName: "datagridHeader",
+        headerClassName: `datagridHeader`,
         headerAlign: "left",
       };
     });
@@ -55,10 +59,18 @@ const Polist = () => {
     );
   }
 
+  function CustomToolbar() {
+    return (
+      <GridToolbarContainer>
+        <GridToolbarExport sx={{ color: "black" }} />
+      </GridToolbarContainer>
+    );
+  }
+
   return (
     <Grid container justifyContent="center">
       <Grid item xs={12} align="center">
-        <Typography variant="h6">PO List</Typography>
+        <Typography variant="h6">Receiving Goods</Typography>
       </Grid>
       <Grid item xs={7.5} mt={2}>
         <Box sx={{ height: "85vh", width: "100%" }}>
@@ -68,8 +80,12 @@ const Polist = () => {
             rowHeight={60}
             rows={poList}
             border
+            components={{ Toolbar: CustomToolbar }}
             columns={generateColumn()}
-            sx={{ ".datagridHeader": { backgroundColor: "primary.main" } }}
+            sx={{
+              border: "1px solid black",
+              ".datagridHeader": {},
+            }}
             onRowClick={(event, index) => {
               console.log(event.row.id);
               setModalIsOpen(true);
@@ -101,7 +117,7 @@ const Polist = () => {
             p: 4,
             overflow: "scroll",
           }}>
-          <PoUpdateDelete poInfo={selectedPo} />
+          <Receiving poInfo={selectedPo} />
         </Box>
       </Modal>
     </Grid>

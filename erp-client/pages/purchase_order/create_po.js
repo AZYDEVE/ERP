@@ -344,6 +344,7 @@ export default function CreatePo() {
           }
         }}>
         {({ values, ...others }) => {
+          console.log(values);
           return (
             <Form>
               <Container>

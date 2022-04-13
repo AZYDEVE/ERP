@@ -45,9 +45,10 @@ router.post("/createPo", (req, res) => {
             product.QTY,
             product.UnitCost,
             product.unitMeasure.value,
-            product.customer.Id,
+            product.customer.ID,
             product.remark,
           ]);
+          console.log(poDetail);
 
           connection.query(
             `INSERT INTO po_db.po_detail ${podetailKeys} VALUES ?`,
@@ -82,16 +83,17 @@ router.post("/createPo", (req, res) => {
 });
 
 router.get("/getListOpenPo", (req, res) => {
-  const sqlStr = `SELECT p.poID as "id" , DATE_FORMAT(p.poDate, "%Y.%M.%d" ) as "Po Date",p.VendorId as "Vendor ID", s.Company_name_ch as "Company Name", p.Remark,sum(pd.QTY * pd.UnitCost) as "Total cost"
+  const sqlStr = `SELECT p.poID as "id" , DATE_FORMAT(p.poDate, "%Y.%M.%d" ) as "Po Date",p.VendorId as "Vendor ID", s.Company_name_ch as "Company Name", p.Remark,sum(pd.QTY * pd.UnitCost) as "Total cost" , p.Status as Status
   FROM po_db.po AS p 
   join master_db.supplier as s 
   join po_db.po_detail as pd  
-  where p.vendorId = s.ID and p.poID= pd.poID And p.status="open" 
+  where p.vendorId = s.ID and p.poID= pd.poID And p.status in ("open","partial") 
   group by p.poID`;
 
   db.query(sqlStr, function (err, results, fields) {
     if (err) {
       res.status(500).json(err);
+      console.log(err);
     }
     res.status(200).json(results);
   });
@@ -165,5 +167,7 @@ router.post("/deletePo", (req, res) => {
     });
   });
 });
+
+router.post("/update", (req, res) => {});
 
 module.exports = router;
