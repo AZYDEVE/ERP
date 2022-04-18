@@ -245,8 +245,9 @@ export default function PoUpdateDelete({ poInfo }) {
                 recordValueField={`orderProduct[${index}].BurnOption`}
                 option={[
                   { value: "None" },
-                  { value: "burn" },
-                  { value: "not-burn" },
+                  { value: "Coded" },
+                  { value: "Keyed" },
+                  { value: "Coded & Keyed" },
                 ]}
               />
             </Grid>

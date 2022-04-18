@@ -70,7 +70,7 @@ const Sidebar = () => {
       </ListItemButton>
       <Collapse in={titleOpen.masterData} timeout="auto" unmountOnExit>
         <List component="div" disablePadding>
-          <ListItemButton sx={{ pl: 12 }}>
+          <ListItemButton sx={{ pl: 12 }} onClick={() => setState(false)}>
             <Link href="/master_data/customer_master">
               <ListItemText
                 primary={
@@ -81,7 +81,7 @@ const Sidebar = () => {
               />
             </Link>
           </ListItemButton>
-          <ListItemButton sx={{ pl: 12 }}>
+          <ListItemButton sx={{ pl: 12 }} onClick={() => setState(false)}>
             <Link href="/master_data/supplier_master">
               <ListItemText
                 primary={
@@ -92,7 +92,7 @@ const Sidebar = () => {
               />
             </Link>
           </ListItemButton>
-          <ListItemButton sx={{ pl: 12 }}>
+          <ListItemButton sx={{ pl: 12 }} onClick={() => setState(false)}>
             <Link href="/master_data/product_master">
               <ListItemText
                 primary={
@@ -121,7 +121,7 @@ const Sidebar = () => {
       </ListItemButton>
       <Collapse in={titleOpen.inventory} timeout="auto" unmountOnExit>
         <List component="div" disablePadding>
-          <ListItemButton sx={{ pl: 12 }}>
+          <ListItemButton sx={{ pl: 12 }} onClick={() => setState(false)}>
             <Link href="/master_data/supplier_master">
               <ListItemText
                 primary={
@@ -132,7 +132,7 @@ const Sidebar = () => {
               />
             </Link>
           </ListItemButton>
-          <ListItemButton sx={{ pl: 12 }}>
+          <ListItemButton sx={{ pl: 12 }} onClick={() => setState(false)}>
             <Link href="/master_data/product_master">
               <ListItemText
                 primary={
@@ -161,7 +161,7 @@ const Sidebar = () => {
       </ListItemButton>
       <Collapse in={titleOpen.purchaseOrder} timeout="auto" unmountOnExit>
         <List component="div" disablePadding>
-          <ListItemButton sx={{ pl: 12 }}>
+          <ListItemButton sx={{ pl: 12 }} onClick={() => setState(false)}>
             <Link href="/purchase_order/create_po">
               <ListItemText
                 primary={
@@ -172,7 +172,7 @@ const Sidebar = () => {
               />
             </Link>
           </ListItemButton>
-          <ListItemButton sx={{ pl: 12 }}>
+          <ListItemButton sx={{ pl: 12 }} onClick={() => setState(false)}>
             <Link href="/purchase_order/po_list">
               <ListItemText
                 primary={
@@ -183,7 +183,7 @@ const Sidebar = () => {
               />
             </Link>
           </ListItemButton>
-          <ListItemButton sx={{ pl: 12 }}>
+          <ListItemButton sx={{ pl: 12 }} onClick={() => setState(false)}>
             <Link href="/purchase_order/receive">
               <ListItemText
                 primary={
@@ -213,7 +213,7 @@ const Sidebar = () => {
       </ListItemButton>
       <Collapse in={titleOpen.salesOrder} timeout="auto" unmountOnExit>
         <List component="div" disablePadding>
-          <ListItemButton sx={{ pl: 12 }}>
+          <ListItemButton sx={{ pl: 12 }} onClick={() => setState(false)}>
             <Link href="/master_data/customer_master">
               <ListItemText
                 primary={
@@ -224,7 +224,7 @@ const Sidebar = () => {
               />
             </Link>
           </ListItemButton>
-          <ListItemButton sx={{ pl: 12 }}>
+          <ListItemButton sx={{ pl: 12 }} onClick={() => setState(false)}>
             <Link href="/master_data/supplier_master">
               <ListItemText
                 primary={
@@ -235,7 +235,7 @@ const Sidebar = () => {
               />
             </Link>
           </ListItemButton>
-          <ListItemButton sx={{ pl: 12 }}>
+          <ListItemButton sx={{ pl: 12 }} onClick={() => setState(false)}>
             <Link href="/master_data/supplier_master">
               <ListItemText
                 primary={
@@ -246,7 +246,7 @@ const Sidebar = () => {
               />
             </Link>
           </ListItemButton>
-          <ListItemButton sx={{ pl: 12 }}>
+          <ListItemButton sx={{ pl: 12 }} onClick={() => setState(false)}>
             <Link href="/master_data/supplier_master">
               <ListItemText
                 primary={
@@ -257,7 +257,7 @@ const Sidebar = () => {
               />
             </Link>
           </ListItemButton>
-          <ListItemButton sx={{ pl: 12 }}>
+          <ListItemButton sx={{ pl: 12 }} onClick={() => setState(false)}>
             <Link href="/master_data/supplier_master">
               <ListItemText
                 primary={

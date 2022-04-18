@@ -87,13 +87,11 @@ const Polist = () => {
               ".datagridHeader": {},
             }}
             onRowClick={(event, index) => {
-              console.log(event.row.id);
               setModalIsOpen(true);
               setSelectedPo({
                 poID: event.row.id,
                 vendorID: event.row["Vendor ID"],
               });
-              console.log(event);
             }}
           />
         </Box>
