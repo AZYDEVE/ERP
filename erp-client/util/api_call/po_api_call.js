@@ -47,3 +47,16 @@ export const deletePo = async (body) => {
     throw new Error(err);
   }
 };
+
+export const updatePO = async (body) => {
+  console.log("hello");
+  try {
+    const result = axios.post(
+      process.env.NEXT_PUBLIC_SERVER_HOST + "/po/updatePo",
+      body
+    );
+    return result;
+  } catch (err) {
+    throw new Error(err);
+  }
+};

@@ -33,7 +33,7 @@ router.post("/createPo", (req, res) => {
           }
 
           const insertPoID = results.insertId;
-          const podetailKeys = `(poID,Application,BurnOption,ETD,Packaging,ProductID,QTY,UnitCost,UnitMeasure,CustomerID,Remark)`;
+          const podetailKeys = `(poID,Application,BurnOption,ETD,Packaging,ProductID,QTY,UnitCost,CustomerID,Remark)`;
 
           const poDetail = values.orderProduct.map((product, index) => [
             insertPoID,
@@ -44,7 +44,6 @@ router.post("/createPo", (req, res) => {
             product.product.ID,
             product.QTY,
             product.UnitCost,
-            product.unitMeasure.value,
             product.customer.ID,
             product.remark,
           ]);
@@ -85,9 +84,9 @@ router.post("/createPo", (req, res) => {
 router.get("/getListOpenPo", (req, res) => {
   const sqlStr = `SELECT p.poID as "id" , DATE_FORMAT(p.poDate, "%Y.%M.%d" ) as "Po Date",p.VendorId as "Vendor ID", s.Company_name_ch as "Company Name", p.Remark,sum(pd.QTY * pd.UnitCost) as "Total cost" , p.Status as Status
   FROM po_db.po AS p 
-  join master_db.supplier as s 
-  join po_db.po_detail as pd  
-  where p.vendorId = s.ID and p.poID= pd.poID And p.status in ("open","partial") 
+  left join master_db.supplier as s on  p.vendorId = s.ID
+  left join po_db.po_detail as pd on p.poID= pd.poID 
+  where p.status in ("open","partial") 
   group by p.poID`;
 
   db.query(sqlStr, function (err, results, fields) {
@@ -109,12 +108,15 @@ router.post("/getpo", async (req, res) => {
   // const sqlStrPoDetail = `SELECT * FROM master_db.product as pro
   // JOIN (SELECT * FROM po_db.po_detail AS pd where pd.poID =${param.poID})as a  where pro.ID = a.ProductID `;
 
-  const sqlStrPoDetail = `SELECT JSON_OBJECT("PartNumber", pro.PartNumber , "ID", pro.ID, "description", pro.description, "VendorNumber", pro.VendorNumber, "Cost", pro.Cost, "Price", pro.Price, "Remark", pro.Remark) as product , 
-  JSON_OBJECT("ID", customer.ID, "Company_name_ch", customer.Company_name_ch) as customer,
-  JSON_OBJECT("value",Application) as Application,JSON_OBJECT("value",BurnOption) as BurnOption,ETD, JSON_OBJECT("value",Packaging) as Packaging,QTY, JSON_OBJECT("value",UnitMeasure) as UnitMeasure,UnitCost  FROM master_db.product as pro 
-    JOIN (SELECT * FROM po_db.po_detail AS pd where pd.poID =${param.poID})as podetail 
-    JOIN (SELECT * FROM master_db.customer ) as customer
-    where pro.ID = podetail.ProductID and  customer.ID = podetail.CustomerID`;
+  const sqlStrPoDetail = `SELECT podetail.ID as PoItemIndex, JSON_OBJECT("PartNumber", pro.PartNumber , "ID", pro.ID, "description", pro.description, "VendorNumber", pro.VendorNumber, "Cost", pro.Cost, "Price", pro.Price, "Remark", pro.Remark, "ReceiveStatus",podetail.ReceiveStatus) as product , 
+                          JSON_OBJECT("ID", customer.ID, "Company_name_ch", customer.Company_name_ch) as customer,
+                          JSON_OBJECT("value",Application) as Application,JSON_OBJECT("value",BurnOption) as BurnOption, ETD, JSON_OBJECT("value",Packaging) as Packaging, QTY, podetail.UnitCost  , podetail.Remark,
+                          cast(IFNULL(SUM(RD.ReceiveQTY),0) as double) as "ReceivedQTY" , podetail.ReceiveStatus
+	                        FROM master_db.product as pro 
+                          JOIN (SELECT * FROM po_db.po_detail AS pd where pd.poID = ${param.poID} ) as podetail ON pro.ID = podetail.ProductID
+                          JOIN (SELECT * FROM master_db.customer ) as customer ON customer.ID = podetail.CustomerID
+                          LEFT JOIN (SELECT * FROM po_db.receiving_document  as receiveDocument WHERE receiveDocument.PoNumber = ${param.poID}) as RD ON RD.PoItemIndex = podetail.ID
+                          GROUP BY (poDetail.ID)`;
 
   const promisePool = db.promise();
   const customer = promisePool.query(sqlPoStr);
@@ -168,6 +170,133 @@ router.post("/deletePo", (req, res) => {
   });
 });
 
-router.post("/update", (req, res) => {});
+router.post("/updatePo", (req, res) => {
+  const data = req.body;
+  const ItemDataForUpdate = data.orderProduct.map((product, index) => {
+    return {
+      poID: data.poID,
+      ID: product.PoItemIndex,
+      Application: product.Application.value,
+      BurnOption: product.BurnOption.value,
+      ETD: product.ETD,
+      Packaging: product.Packaging.value,
+      QTY: product.QTY,
+      UnitCost: product.UnitCost,
+      CustomerId: product.customer.ID,
+      ProductID: product.product.ID,
+      Remark: product.Remark,
+      ReceiveStatus: product.ReceiveStatus,
+    };
+  });
+
+  console.log(data);
+  // res.status(200).json({ message: "success" });
+
+  // get list of the po index item from DB
+  // const getPoItemList = `select poID, poDetail.ID as poItemIndex, QTY as OrderQTY ,  CAST(IFNULL(sum(receive_document.ReceiveQTY),0) as double) as ReceiveQTY
+  //                        FROM (SELECT * FROM po_db.po_detail as PD WHERE PD.poID = ${data.poID}) as poDetail
+  //                        LEFT JOIN (SELECT * FROM po_db.receiving_document WHERE PoNumber = ${data.poID}) AS receive_document on receive_document.poItemIndex =  poDetail.ID
+  //                        GROUP BY (poDetail.ID);`;
+
+  const removePOItemsNotInCLIENT = `DELETE FROM po_db.po_detail WHERE ID NOT IN (?) AND poID=${data.poID}`;
+
+  const itemInClient = ItemDataForUpdate.filter((item) => {
+    if (item.ID !== "") {
+      return item.ID;
+    }
+  }).map((item, index) => item.ID);
+
+  console.log(itemInClient);
+
+  db.getConnection(function (err, connection) {
+    connection.beginTransaction(function (err) {
+      if (err) {
+        throw err;
+      }
+      connection.query(
+        removePOItemsNotInCLIENT,
+        [itemInClient],
+        function (error, results, fields) {
+          if (error) {
+            return connection.rollback(function () {
+              connection.release();
+              throw error;
+            });
+          }
+
+          console.log(results);
+
+          ItemDataForUpdate.map((item, index) => {
+            const { ID, ...otherFields } = item;
+            const key = Object.keys(otherFields);
+            const values = Object.values(otherFields);
+            console.log(ID);
+            console.log(values);
+            const sqlUpdate = `UPDATE po_db.po_detail SET ${key.join(
+              "=?,"
+            )} =? WHERE ID=${ID}`;
+
+            if (ID !== "") {
+              connection.query(sqlUpdate, values, (err, results, fields) => {
+                if (err) {
+                  return connection.rollback(function () {
+                    connection.release();
+                    console.log(err);
+                  });
+                }
+              });
+            } else {
+              const newItemInsert = `INSERT INTO po_db.po_detail (${key.toString()}) values (?)`;
+              connection.query(
+                newItemInsert,
+                [values],
+                (err, results, fields) => {
+                  if (err) {
+                    return connection.rollback(function () {
+                      connection.release();
+                      console.log(err);
+                    });
+                  }
+                }
+              );
+            }
+          });
+
+          connection.commit(function (err) {
+            if (err) {
+              return connection.rollback(function () {
+                connection.release();
+                throw err;
+              });
+            }
+            res.status(200).json({ message: "success" });
+          });
+
+          // connection.query(
+          //   "INSERT INTO po_db.po_detail(${insertKeys}) VALUES? on",
+          //   insertValues,
+          //   function (error, results, fields) {
+          //     if (error) {
+          //       return connection.rollback(function () {
+          //         connection.release();
+          //         throw error;
+          //       });
+          //     }
+          //     connection.commit(function (err) {
+          //       if (err) {
+          //         return connection.rollback(function () {
+          //           connection.release();
+          //           throw err;
+          //         });
+          //       }
+          //       res.status(200).json({ message: "success" });
+          //     });
+          //   }
+          // );
+        }
+      );
+    });
+  });
+});
 
 module.exports = router;

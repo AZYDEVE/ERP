@@ -38,9 +38,6 @@ export default function CreatePo() {
     Currency: yup.string().required("required!"),
     orderProduct: yup.array().of(
       yup.object().shape({
-        Application: yup.object().shape({
-          value: yup.string().required("required"),
-        }),
         BurnOption: yup.object().shape({
           value: yup.string().required("required"),
         }),
@@ -55,9 +52,6 @@ export default function CreatePo() {
         }),
         product: yup.object().shape({
           PartNumber: yup.string().required("required"),
-        }),
-        unitMeasure: yup.object().shape({
-          value: yup.string().required("required"),
         }),
       })
     ),
@@ -203,7 +197,7 @@ export default function CreatePo() {
               <CustomAutocomplete
                 fullWidth
                 name={`orderProduct[${index}].BurnOption`}
-                titlelabel="Option"
+                titlelabel="Burn Option"
                 selectionLabel="value"
                 recordValueField={`orderProduct[${index}].BurnOption`}
                 option={[
@@ -214,14 +208,14 @@ export default function CreatePo() {
                 ]}
               />
             </Grid>
-            <Grid item xs={2.5}>
+            <Grid item xs={2}>
               <DatePicker
                 fullWidth
                 name={`orderProduct[${index}].ETD`}
                 label="Est delivery date"
               />
             </Grid>
-            <Grid item xs={2}>
+            <Grid item xs={2.5}>
               <CustomAutocomplete
                 fullWidth
                 name={`orderProduct[${index}].Packaging`}
@@ -245,17 +239,8 @@ export default function CreatePo() {
                 label="QTY"
               />
             </Grid>
-            <Grid item xs={1.5}>
-              <CustomAutocomplete
-                fullWidth
-                name={`orderProduct[${index}].unitMeasure`}
-                titlelabel="U.M"
-                selectionLabel="value"
-                recordValueField={`orderProduct[${index}].unitMeasure`}
-                option={[{ value: "None" }, { value: "PCS" }, { value: "BOX" }]}
-              />
-            </Grid>
-            <Grid item xs={1.5}>
+
+            <Grid item xs={2}>
               <TextFieldWrapper
                 fullWidth
                 name={`orderProduct[${index}].UnitCost`}
@@ -263,7 +248,7 @@ export default function CreatePo() {
                 type="number"
               />
             </Grid>
-            <Grid item xs={2}>
+            <Grid item xs={3}>
               <TextField
                 fullWidth
                 name={`orderProduct[${index}].totalCost`}
@@ -330,7 +315,7 @@ export default function CreatePo() {
                 showConfirmButton: true,
               }).then((result) => {
                 if (result.isConfirmed) {
-                  Router.reload(window.location.pathname);
+                  // Router.reload(window.location.pathname);
                 }
               });
             }
@@ -508,7 +493,6 @@ export default function CreatePo() {
                                       customer: "",
                                       product: "",
                                       remark: "",
-                                      unitMeasure: { value: "" },
                                     });
                                   }}>
                                   Add Item

@@ -24,23 +24,21 @@ import { FieldArray, Form, Formik } from "formik";
 import * as yup from "yup";
 
 import CustomAutocomplete from "../../component/forms/formComponent/autoComplete";
-import { create_po, deletePo, getPo } from "../../util/api_call/po_api_call";
+import { deletePo, getPo, updatePO } from "../../util/api_call/po_api_call";
 import Router from "next/router";
 import RingLoader from "react-spinners/RingLoader";
 import Swal from "sweetalert2";
+import moment from "moment";
 
 export default function PoUpdateDelete({ poInfo }) {
   const validationSchema = yup.object().shape({
     Company_name_ch: yup.string().required("required!"),
     Tel: yup.number().integer("no decimal").required("required!"),
     Address: yup.string().required("required!"),
-    ID: yup.number().required("required!"),
+    // ID: yup.number().required("required!"),
     Currency: yup.string().required("required!"),
     orderProduct: yup.array().of(
       yup.object().shape({
-        Application: yup.object().shape({
-          value: yup.string().required("required"),
-        }),
         BurnOption: yup.object().shape({
           value: yup.string().required("required"),
         }),
@@ -56,9 +54,6 @@ export default function PoUpdateDelete({ poInfo }) {
         product: yup.object().shape({
           PartNumber: yup.string().required("required"),
         }),
-        unitMeasure: yup.object().shape({
-          value: yup.string().required("required"),
-        }),
       })
     ),
   });
@@ -70,12 +65,12 @@ export default function PoUpdateDelete({ poInfo }) {
   const [customerList, setCustomerList] = useState(null);
   const [spiner, setSpiner] = useState(false);
   const [po, setPo] = useState(null);
+  const [isPoDeletable, setPoDeletable] = useState(true);
 
   useEffect(async () => {
     const result = await get_supplierList();
     if (result.data) {
       setSupplier(result.data);
-      console.log(result.data);
     }
   }, []);
 
@@ -89,7 +84,6 @@ export default function PoUpdateDelete({ poInfo }) {
   useEffect(async () => {
     const result = await get_customer_list();
     if (result.data) {
-      console.log(result.data);
       setCustomerList(result.data);
     }
   }, []);
@@ -97,11 +91,19 @@ export default function PoUpdateDelete({ poInfo }) {
   useEffect(async () => {
     const result = await getPo(poInfo);
     if (result.data) {
-      console.log(result.data);
-
-      setPo(result.data);
+      setPo({ ...result.data, poID: poInfo.poID });
+      checkIfAnyReceived(result.data.orderProduct);
     }
   }, []);
+
+  const checkIfAnyReceived = (data) => {
+    for (let i = 0; i < data.length; i++) {
+      if (data[i].ReceivedQTY > 0) {
+        setPoDeletable(false);
+        return;
+      }
+    }
+  };
 
   const calculateTotalCost = (values, index) => {
     if (values) {
@@ -156,12 +158,8 @@ export default function PoUpdateDelete({ poInfo }) {
   }
 
   //************************************order detail form***********************************/
-  const generateProductList = (
-    values,
-    index,
-    formikArrayHelperFunction,
-    formikValues
-  ) => {
+  const generateProductList = (values, index, formikArrayHelperFunction) => {
+    const isReceived = values.ReceivedQTY > 0 ? true : false;
     return (
       <Grid
         container
@@ -185,21 +183,24 @@ export default function PoUpdateDelete({ poInfo }) {
           }}>
           <Box
             sx={{
-              width: "60%",
-              height: "auto",
+              width: "3vh",
+              height: "3vh",
               background: "black",
-              borderRadius: "100%",
+              borderRadius: "50%",
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
             }}>
-            <Typography color="white">{index + 1}</Typography>
+            <Typography color="white" sx={{ fontSize: "2vh" }}>
+              {index + 1}
+            </Typography>
           </Box>
         </Grid>
         <Grid item xs={10.5}>
           <Grid container spacing={1.5}>
             <Grid item xs={3.5}>
               <CustomAutocomplete
+                disabled={isReceived}
                 name={`orderProduct[${index}].product`}
                 titlelabel="Part Number"
                 selectionLabel="PartNumber"
@@ -213,6 +214,7 @@ export default function PoUpdateDelete({ poInfo }) {
             </Grid>
             <Grid item xs={3.5}>
               <CustomAutocomplete
+                disabled={isReceived}
                 name={`orderProduct[${index}].customer`}
                 titlelabel="Customer Name"
                 selectionLabel="Company_name_ch"
@@ -223,6 +225,7 @@ export default function PoUpdateDelete({ poInfo }) {
 
             <Grid item xs={2}>
               <CustomAutocomplete
+                disabled={isReceived}
                 fullWidth
                 name={`orderProduct[${index}].Application`}
                 titlelabel="Application"
@@ -238,6 +241,7 @@ export default function PoUpdateDelete({ poInfo }) {
             </Grid>
             <Grid item xs={3}>
               <CustomAutocomplete
+                disabled={isReceived}
                 fullWidth
                 name={`orderProduct[${index}].BurnOption`}
                 titlelabel="Option"
@@ -251,8 +255,9 @@ export default function PoUpdateDelete({ poInfo }) {
                 ]}
               />
             </Grid>
-            <Grid item xs={2.5}>
+            <Grid item xs={2}>
               <DatePicker
+                disabled={isReceived}
                 fullWidth
                 name={`orderProduct[${index}].ETD`}
                 label="Est delivery date"
@@ -260,6 +265,7 @@ export default function PoUpdateDelete({ poInfo }) {
             </Grid>
             <Grid item xs={2}>
               <CustomAutocomplete
+                disabled={isReceived}
                 fullWidth
                 name={`orderProduct[${index}].Packaging`}
                 titlelabel="pkg"
@@ -274,24 +280,24 @@ export default function PoUpdateDelete({ poInfo }) {
               />
             </Grid>
 
-            <Grid item xs={2.5}>
+            <Grid item xs={2}>
               <TextFieldWrapper
                 fullWidth
                 type="number"
                 name={`orderProduct[${index}].QTY`}
-                label="QTY"
+                label="PO QTY"
               />
             </Grid>
-            <Grid item xs={1.5}>
-              <CustomAutocomplete
+            <Grid item xs={2}>
+              <TextFieldWrapper
                 fullWidth
-                name={`orderProduct[${index}].UnitMeasure`}
-                titlelabel="U.M"
-                selectionLabel="value"
-                recordValueField={`orderProduct[${index}].UnitMeasure`}
-                option={[{ value: "None" }, { value: "PCS" }, { value: "BOX" }]}
+                type="number"
+                name={`orderProduct[${index}].ReceivedQTY`}
+                label="Received QTY"
+                disabled
               />
             </Grid>
+
             <Grid item xs={1.5}>
               <TextFieldWrapper
                 fullWidth
@@ -300,7 +306,7 @@ export default function PoUpdateDelete({ poInfo }) {
                 type="number"
               />
             </Grid>
-            <Grid item xs={2}>
+            <Grid item xs={2.5}>
               <TextField
                 fullWidth
                 name={`orderProduct[${index}].totalCost`}
@@ -308,13 +314,14 @@ export default function PoUpdateDelete({ poInfo }) {
                 value={calculateTotalCost(values, index)}
                 type="number"
                 inputProps={{ readOnly: true, shrink: true }}
+                disabled={isReceived}
               />
             </Grid>
 
             <Grid item xs={12}>
               <TextFieldWrapper
                 fullWidth
-                name={`orderProduct[${index}].remark`}
+                name={`orderProduct[${index}].Remark`}
                 label="Remark"
                 multiline={true}
                 defaultValue=""
@@ -332,12 +339,16 @@ export default function PoUpdateDelete({ poInfo }) {
             justifyContent: "center",
             alignItems: "center",
           }}>
-          <RemoveCircleOutlineIcon
-            sx={{ fontSize: "2.1rem", cursor: "pointer" }}
-            onClick={() => {
-              formikArrayHelperFunction.remove(index);
-            }}
-          />
+          {isReceived ? (
+            ""
+          ) : (
+            <RemoveCircleOutlineIcon
+              sx={{ fontSize: "2.1rem", cursor: "pointer" }}
+              onClick={() => {
+                formikArrayHelperFunction.remove(index);
+              }}
+            />
+          )}
         </Grid>
       </Grid>
     );
@@ -353,9 +364,16 @@ export default function PoUpdateDelete({ poInfo }) {
         }}
         validationSchema={validationSchema}
         onSubmit={async (values) => {
+          console.log(values);
           setSpiner(true);
+
+          values.orderProduct.map((value, index) => {
+            value.ETD = moment(value.ETD).format("YYYY-MM-DD") + "";
+          });
+
           try {
-            const result = await create_po(values);
+            const result = await updatePO(values);
+
             setSpiner(false);
             if (result.status >= 200 || result.status <= 299) {
               Swal.fire({
@@ -365,7 +383,7 @@ export default function PoUpdateDelete({ poInfo }) {
                 showConfirmButton: true,
               }).then((result) => {
                 if (result.isConfirmed) {
-                  Router.reload(window.location.pathname);
+                  // Router.reload(window.location.pathname);
                 }
               });
             }
@@ -387,31 +405,15 @@ export default function PoUpdateDelete({ poInfo }) {
                   <Grid item xs={12} align="center">
                     <Typography variant="h6">Update PO</Typography>
                   </Grid>
-                  <Grid item xs={4} mt={3}>
-                    <Autocomplete
-                      disabled
-                      name="Company_name_ch"
-                      value={values.Company_name_ch}
-                      disablePortal
-                      options={suppliers.map(
-                        (supplier) => supplier.Company_name_ch
-                      )}
-                      getOptionLabel={(option) => option}
-                      renderInput={(params) => (
-                        <TextField {...params} label="Vendor" />
-                      )}
-                      onChange={(event, value) => {
-                        setSelectedSupplier(value);
-                        if (value) {
-                          setSelected(true);
-                        } else {
-                          setSelected(false);
-                        }
-                      }}
-                    />
-                  </Grid>
-
-                  <Grid container spacing={1.5} mt={0.5}>
+                  <Grid container spacing={1.5} mt={2}>
+                    <Grid item xs={4}>
+                      <TextFieldWrapper
+                        disabled
+                        fullWidth
+                        name="Company_name_ch"
+                        label="Vendor Name"
+                      />
+                    </Grid>
                     <Grid item xs={2}>
                       <TextFieldWrapper
                         fullWidth
@@ -420,6 +422,17 @@ export default function PoUpdateDelete({ poInfo }) {
                         disabled
                       />
                     </Grid>
+                  </Grid>
+                  <Grid container spacing={1.5} mt={0.2}>
+                    <Grid item xs={2}>
+                      <TextFieldWrapper
+                        fullWidth
+                        name="poID"
+                        label="Po Number"
+                        disabled
+                      />
+                    </Grid>
+
                     <Grid item xs={2}>
                       <DatePicker fullWidth name="PoDate" label="PO Date" />
                     </Grid>
@@ -496,8 +509,7 @@ export default function PoUpdateDelete({ poInfo }) {
                             return generateProductList(
                               value,
                               index,
-                              arrayHelper,
-                              values
+                              arrayHelper
                             );
                           })}
                           <Grid
@@ -505,17 +517,21 @@ export default function PoUpdateDelete({ poInfo }) {
                             justifyContent="center"
                             mt={2}
                             spacing={2}>
+                            <Grid item>
+                              {isPoDeletable ? (
+                                <Button
+                                  variant="contained"
+                                  size="large"
+                                  sx={{ color: "red" }}
+                                  onClick={handleDelete}>
+                                  <DeleteIcon />
+                                </Button>
+                              ) : (
+                                ""
+                              )}
+                            </Grid>
                             {values.orderProduct.length > 0 ? (
                               <>
-                                <Grid item>
-                                  <Button
-                                    variant="contained"
-                                    size="large"
-                                    sx={{ color: "red" }}
-                                    onClick={handleDelete}>
-                                    <DeleteIcon />
-                                  </Button>
-                                </Grid>
                                 <Grid item>
                                   <SubmitButtom
                                     variant="contained"
@@ -539,11 +555,13 @@ export default function PoUpdateDelete({ poInfo }) {
                                     ETD: "",
                                     Packaging: { value: "" },
                                     QTY: "",
+                                    ReceivedQTY: 0,
                                     UnitCost: "",
                                     customer: "",
                                     product: "",
-                                    remark: "",
-                                    unitMeasure: { value: "" },
+                                    Remark: "",
+                                    PoItemIndex: "",
+                                    ReceiveStatus: "open",
                                   });
                                 }}>
                                 Add Item
