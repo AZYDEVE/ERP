@@ -1,0 +1,17 @@
+@media print {
+  .printing table {
+    border: 1px gray;
+  }
+
+  .printing thead {
+    display: table-row-group;
+  }
+
+  .printing tr {
+    page-break-inside: avoid;
+  }
+
+  .poTable {
+    border-collapse: collapse;
+  }
+}

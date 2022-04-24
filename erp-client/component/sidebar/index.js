@@ -188,7 +188,7 @@ const Sidebar = () => {
               <ListItemText
                 primary={
                   <Typography sx={{ fontSize: "0.8rem", color: "blue" }}>
-                    RECEIVING GOODS
+                    GOODS RECEIVE
                   </Typography>
                 }
               />

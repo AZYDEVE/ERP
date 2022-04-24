@@ -189,15 +189,6 @@ router.post("/updatePo", (req, res) => {
     };
   });
 
-  console.log(data);
-  // res.status(200).json({ message: "success" });
-
-  // get list of the po index item from DB
-  // const getPoItemList = `select poID, poDetail.ID as poItemIndex, QTY as OrderQTY ,  CAST(IFNULL(sum(receive_document.ReceiveQTY),0) as double) as ReceiveQTY
-  //                        FROM (SELECT * FROM po_db.po_detail as PD WHERE PD.poID = ${data.poID}) as poDetail
-  //                        LEFT JOIN (SELECT * FROM po_db.receiving_document WHERE PoNumber = ${data.poID}) AS receive_document on receive_document.poItemIndex =  poDetail.ID
-  //                        GROUP BY (poDetail.ID);`;
-
   const removePOItemsNotInCLIENT = `DELETE FROM po_db.po_detail WHERE ID NOT IN (?) AND poID=${data.poID}`;
 
   const itemInClient = ItemDataForUpdate.filter((item) => {
@@ -206,13 +197,12 @@ router.post("/updatePo", (req, res) => {
     }
   }).map((item, index) => item.ID);
 
-  console.log(itemInClient);
-
   db.getConnection(function (err, connection) {
     connection.beginTransaction(function (err) {
       if (err) {
         throw err;
       }
+      // delete from db any po items removed by the user
       connection.query(
         removePOItemsNotInCLIENT,
         [itemInClient],
@@ -236,6 +226,7 @@ router.post("/updatePo", (req, res) => {
               "=?,"
             )} =? WHERE ID=${ID}`;
 
+            // if the item has ID (PoItemIndex), then we can update the existing record for the item details
             if (ID !== "") {
               connection.query(sqlUpdate, values, (err, results, fields) => {
                 if (err) {
@@ -244,8 +235,10 @@ router.post("/updatePo", (req, res) => {
                     console.log(err);
                   });
                 }
+                console.log(results);
               });
             } else {
+              // if the item does not have an ID (PoItemIndex), then we have to insert the new PO item into the db
               const newItemInsert = `INSERT INTO po_db.po_detail (${key.toString()}) values (?)`;
               connection.query(
                 newItemInsert,
@@ -271,28 +264,6 @@ router.post("/updatePo", (req, res) => {
             }
             res.status(200).json({ message: "success" });
           });
-
-          // connection.query(
-          //   "INSERT INTO po_db.po_detail(${insertKeys}) VALUES? on",
-          //   insertValues,
-          //   function (error, results, fields) {
-          //     if (error) {
-          //       return connection.rollback(function () {
-          //         connection.release();
-          //         throw error;
-          //       });
-          //     }
-          //     connection.commit(function (err) {
-          //       if (err) {
-          //         return connection.rollback(function () {
-          //           connection.release();
-          //           throw err;
-          //         });
-          //       }
-          //       res.status(200).json({ message: "success" });
-          //     });
-          //   }
-          // );
         }
       );
     });

@@ -6,6 +6,7 @@ import { ThemeProvider, CssBaseline } from "@mui/material";
 import createEmotionCache from "../util/createEmotionCache";
 import Theme from "../util/theme";
 import "../styles/globals.css";
+import Head from "next/head";
 
 const clientSideEmotionCache = createEmotionCache();
 
@@ -13,14 +14,20 @@ const MyApp = (props) => {
   const { Component, emotionCache = clientSideEmotionCache, pageProps } = props;
 
   return (
-    <CacheProvider value={emotionCache}>
-      <ThemeProvider theme={Theme}>
-        <CssBaseline />
-        <MainLayout>
-          <Component {...pageProps} />;
-        </MainLayout>
-      </ThemeProvider>
-    </CacheProvider>
+    <>
+      <Head>
+        <link rel="shortcut icon" href="/images/favicon.ico" />
+        <title>AWSOMETEK</title>
+      </Head>
+      <CacheProvider value={emotionCache}>
+        <ThemeProvider theme={Theme}>
+          <CssBaseline />
+          <MainLayout>
+            <Component {...pageProps} />;
+          </MainLayout>
+        </ThemeProvider>
+      </CacheProvider>
+    </>
   );
 };
 

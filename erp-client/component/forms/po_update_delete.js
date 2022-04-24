@@ -29,6 +29,9 @@ import Router from "next/router";
 import RingLoader from "react-spinners/RingLoader";
 import Swal from "sweetalert2";
 import moment from "moment";
+import PrintPDFButton from "../pdf_template/print_pdf_button";
+import PoTemplate from "../pdf_template/po_template";
+import TestPoTemplate from "../pdf_template/test_po_template";
 
 export default function PoUpdateDelete({ poInfo }) {
   const validationSchema = yup.object().shape({
@@ -345,7 +348,17 @@ export default function PoUpdateDelete({ poInfo }) {
             <RemoveCircleOutlineIcon
               sx={{ fontSize: "2.1rem", cursor: "pointer" }}
               onClick={() => {
-                formikArrayHelperFunction.remove(index);
+                Swal.fire({
+                  title: `Delete this item?`,
+
+                  icon: "question",
+                  showConfirmButton: true,
+                  showCancelButton: true,
+                }).then((result) => {
+                  if (result.isConfirmed) {
+                    formikArrayHelperFunction.remove(index);
+                  }
+                });
               }}
             />
           )}
@@ -357,6 +370,13 @@ export default function PoUpdateDelete({ poInfo }) {
   // **********************************customer form***************************************************
   return (
     <>
+      <Container>
+        <Grid container>
+          <Grid item xs={12} align="center">
+            <Typography variant="h6">Update PO</Typography>
+          </Grid>
+        </Grid>
+      </Container>
       <Formik
         enableReinitialize
         initialValues={{
@@ -365,7 +385,7 @@ export default function PoUpdateDelete({ poInfo }) {
         validationSchema={validationSchema}
         onSubmit={async (values) => {
           console.log(values);
-          setSpiner(true);
+          // setSpiner(true);
 
           values.orderProduct.map((value, index) => {
             value.ETD = moment(value.ETD).format("YYYY-MM-DD") + "";
@@ -374,16 +394,17 @@ export default function PoUpdateDelete({ poInfo }) {
           try {
             const result = await updatePO(values);
 
-            setSpiner(false);
             if (result.status >= 200 || result.status <= 299) {
               Swal.fire({
                 title: `SUCCESS`,
-                text: `PO# : ${result.data.data}`,
+                text: `successfully updated the PO`,
                 icon: "success",
                 showConfirmButton: true,
               }).then((result) => {
                 if (result.isConfirmed) {
-                  // Router.reload(window.location.pathname);
+                  Router.reload(window.location.pathname);
+                  // setSpiner(false);
+                  // Router.push("/purchase_order/create_po");
                 }
               });
             }
@@ -402,10 +423,12 @@ export default function PoUpdateDelete({ poInfo }) {
             <Form>
               <Container>
                 <Grid container spacing={0}>
-                  <Grid item xs={12} align="center">
-                    <Typography variant="h6">Update PO</Typography>
-                  </Grid>
-                  <Grid container spacing={1.5} mt={2}>
+                  <Grid container spacing={1.5}>
+                    <Grid item xs={12} mb={1}>
+                      <PrintPDFButton>
+                        <PoTemplate poDetail={values} />
+                      </PrintPDFButton>
+                    </Grid>
                     <Grid item xs={4}>
                       <TextFieldWrapper
                         disabled
@@ -556,7 +579,7 @@ export default function PoUpdateDelete({ poInfo }) {
                                     Packaging: { value: "" },
                                     QTY: "",
                                     ReceivedQTY: 0,
-                                    UnitCost: "",
+                                    UnitCost: 0,
                                     customer: "",
                                     product: "",
                                     Remark: "",
