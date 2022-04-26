@@ -122,7 +122,7 @@ const Sidebar = () => {
       <Collapse in={titleOpen.inventory} timeout="auto" unmountOnExit>
         <List component="div" disablePadding>
           <ListItemButton sx={{ pl: 12 }} onClick={() => setState(false)}>
-            <Link href="/master_data/supplier_master">
+            <Link href="/inventory/inventoryList">
               <ListItemText
                 primary={
                   <Typography sx={{ fontSize: "0.8rem", color: "blue" }}>

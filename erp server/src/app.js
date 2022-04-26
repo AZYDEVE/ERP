@@ -8,6 +8,7 @@ const supplier_routes = require("../routes/supplier_db");
 const product_routes = require("../routes/product_db");
 const po_routes = require("../routes/po_db");
 const receiving_routes = require("../routes/receiving_db");
+const inventory = require("../routes/inventory_db");
 const app = express();
 
 const cors = require("cors");
@@ -25,5 +26,6 @@ app.use("/supplier", supplier_routes);
 app.use("/product", product_routes);
 app.use("/receive", receiving_routes);
 app.use("/po", po_routes);
+app.use("/inventory", inventory);
 
 module.exports = app;
