@@ -71,10 +71,10 @@ const Customer_master = ({ customerList }) => {
                     data={row}
                     formType="customer_update_delete_form">
                     <TableCell component="th" scope="row">
-                      {"ABC0" + row.ID}
+                      {"ABC0" + row.CustomerID}
                     </TableCell>
                     <TableCell align="left">{row.Company_name_ch}</TableCell>
-                    <TableCell align="left">{row.Address}</TableCell>
+                    <TableCell align="left">{row.BillingAddress}</TableCell>
                     <TableCell align="left">{row.Tel}</TableCell>
                   </ClickableTableRow>
                 ))}

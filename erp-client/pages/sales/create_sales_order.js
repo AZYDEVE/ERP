@@ -12,7 +12,6 @@ import {
 } from "@mui/material";
 
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
-import { get_supplierList } from "../../util/api_call/supplier_api_call";
 import { get_productList } from "../../util/api_call/product_api_call";
 import { get_customer_list } from "../../util/api_call/customer_api_call";
 import { Transition } from "react-transition-group";
@@ -24,53 +23,52 @@ import { FieldArray, Form, Formik } from "formik";
 import * as yup from "yup";
 import moment from "moment";
 import CustomAutocomplete from "../../component/forms/formComponent/autoComplete";
-import { create_po } from "../../util/api_call/po_api_call";
+
 import Router from "next/router";
 import RingLoader from "react-spinners/RingLoader";
 import Swal from "sweetalert2";
+import { create_salesOrder } from "../../util/api_call/salesOrder_api_call";
 
 export default function CreatePo() {
   const validationSchema = yup.object().shape({
     Company_name_ch: yup.string().required("required!"),
-    Tel: yup.number().integer("no decimal").required("required!"),
-    Address: yup.string().required("required!"),
-    ID: yup.number().required("required!"),
+    CustomerOrderNumber: yup.string().required("required"),
+    Incoterms: yup.string().required("required"),
+    BillingAddress: yup.string().required("required!"),
+    DeliveryAddress: yup.string().required("required!"),
+    CustomerID: yup.number().required("required!"),
     Currency: yup.string().required("required!"),
+    SalesOrderDate: yup.string().required("required!"),
     orderProduct: yup.array().of(
       yup.object().shape({
         BurnOption: yup.object().shape({
           value: yup.string().required("required"),
         }),
         ETD: yup.date().required("required"),
-        // Packaging: yup.object().shape({
-        //   value: yup.string().required("required"),
-        // }),
-        QTY: yup.number().required("required"),
-        UnitCost: yup.number().required("required"),
-        // customer: yup.object().shape({
-        //   Company_name_ch: yup.string().required("required!"),
-        // }),
-        product: yup.object().shape({
-          PartNumber: yup.string().required("required"),
-        }),
+        QTY: yup
+          .number()
+          .moreThan(0, "Must be greater than 0")
+          .required("required"),
+        UnitPrice: yup
+          .number()
+          .min(0, "cannot be negative")
+          .required("required"),
+        product: yup
+          .object()
+          .shape({
+            ID: yup.number().required("required"),
+            PartNumber: yup.string().required("required"),
+          })
+          .required("required"),
       })
     ),
   });
 
-  const [suppliers, setSupplier] = useState(null);
-  const [selectedSupplier, setSelectedSupplier] = useState({});
+  const [selectedCustomer, setSelectedCustomer] = useState({});
   const [selected, setSelected] = useState(false);
   const [productList, setProductList] = useState(null);
   const [customerList, setCustomerList] = useState(null);
   const [spiner, setSpiner] = useState(false);
-
-  useEffect(async () => {
-    const result = await get_supplierList();
-    if (result.data) {
-      setSupplier(result.data);
-      console.log(result.data);
-    }
-  }, []);
 
   useEffect(async () => {
     const result = await get_productList();
@@ -100,11 +98,11 @@ export default function CreatePo() {
 
   const calculateTotalCost = (values, index) => {
     if (values) {
-      return values.QTY * values.UnitCost;
+      return values.QTY * values.UnitPrice;
     }
     return 0;
   };
-  if (!suppliers || !productList) {
+  if (!productList && !customerList) {
     return (
       <>
         <h1>Loading</h1>
@@ -153,48 +151,22 @@ export default function CreatePo() {
             <Typography color="white">{index + 1}</Typography>
           </Box>
         </Grid>
-        <Grid item xs={10.5}>
-          <Grid container spacing={1.5}>
-            <Grid item xs={3.5}>
+        <Grid item xs={10.7}>
+          <Grid container spacing={1}>
+            <Grid item xs={3.2}>
               <CustomAutocomplete
+                required
                 name={`orderProduct[${index}].product`}
                 titlelabel="Part Number"
                 selectionLabel="PartNumber"
                 recordValueField={`orderProduct[${index}].product`}
-                optionalSetValueforOtherfields={{
-                  name: `orderProduct[${index}].UnitCost`,
-                  field: "Cost",
-                }}
                 option={productList}
               />
             </Grid>
-            <Grid item xs={3.5}>
-              <CustomAutocomplete
-                name={`orderProduct[${index}].customer`}
-                titlelabel="Customer Name"
-                selectionLabel="Company_name_ch"
-                recordValueField={`orderProduct[${index}].customer`}
-                option={customerList}
-              />
-            </Grid>
 
-            <Grid item xs={2}>
+            <Grid item xs={2.4}>
               <CustomAutocomplete
-                fullWidth
-                name={`orderProduct[${index}].Application`}
-                titlelabel="Application"
-                selectionLabel="value"
-                recordValueField={`orderProduct[${index}].Application`}
-                option={[
-                  { value: "None" },
-                  { value: "Car" },
-                  { value: "TV" },
-                  { value: "home" },
-                ]}
-              />
-            </Grid>
-            <Grid item xs={3}>
-              <CustomAutocomplete
+                required
                 fullWidth
                 name={`orderProduct[${index}].BurnOption`}
                 titlelabel="Burn Option"
@@ -208,31 +180,18 @@ export default function CreatePo() {
                 ]}
               />
             </Grid>
-            <Grid item xs={2}>
+            <Grid item xs={1.8}>
               <DatePicker
+                required
                 fullWidth
                 name={`orderProduct[${index}].ETD`}
                 label="Est delivery date"
               />
             </Grid>
-            <Grid item xs={2.5}>
-              <CustomAutocomplete
-                fullWidth
-                name={`orderProduct[${index}].Packaging`}
-                titlelabel="pkg"
-                selectionLabel="value"
-                recordValueField={`orderProduct[${index}].Packaging`}
-                option={[
-                  { value: "None" },
-                  { value: "S" },
-                  { value: "M" },
-                  { value: "L" },
-                ]}
-              />
-            </Grid>
 
-            <Grid item xs={2.5}>
+            <Grid item xs={1.5}>
               <TextFieldWrapper
+                required
                 fullWidth
                 type="number"
                 name={`orderProduct[${index}].QTY`}
@@ -240,19 +199,20 @@ export default function CreatePo() {
               />
             </Grid>
 
-            <Grid item xs={2}>
+            <Grid item xs={1.5}>
               <TextFieldWrapper
+                required
                 fullWidth
-                name={`orderProduct[${index}].UnitCost`}
-                label="Unit Cost"
+                name={`orderProduct[${index}].UnitPrice`}
+                label="Unit Price"
                 type="number"
               />
             </Grid>
-            <Grid item xs={3}>
+            <Grid item xs={1.6}>
               <TextField
                 fullWidth
-                name={`orderProduct[${index}].totalCost`}
-                label="Total Cost"
+                name={`orderProduct[${index}].totalPrice`}
+                label="Total Price"
                 value={calculateTotalCost(values, index)}
                 type="number"
                 inputProps={{ readOnly: true, shrink: true }}
@@ -273,7 +233,7 @@ export default function CreatePo() {
         </Grid>
         <Grid
           item
-          xs={1}
+          xs={0.8}
           sx={{
             "& :hover": { color: "red" },
             display: "flex",
@@ -297,25 +257,31 @@ export default function CreatePo() {
       <Formik
         enableReinitialize
         initialValues={{
-          ...selectedSupplier,
-          PoDate: moment(new Date()).format("YYYY-MM-DD"),
+          ...selectedCustomer,
+          CustomerOrderNumber: "",
+          SalesOrderDate: moment(new Date()).format("YYYY-MM-DD"),
+          ReferenceNumber: "",
+          Currency: "",
+          Incoterms: "",
+          ContactPerson: "",
+          Email: "",
           orderProduct: [],
         }}
         validationSchema={validationSchema}
         onSubmit={async (values) => {
           setSpiner(true);
           try {
-            const result = await create_po(values);
+            const result = await create_salesOrder(values);
             setSpiner(false);
             if (result.status >= 200 || result.status <= 299) {
               Swal.fire({
                 title: `SUCCESS`,
-                text: `PO# : ${result.data.data}`,
+                text: `SALES ORDER# : ${result.data.data}`,
                 icon: "success",
                 showConfirmButton: true,
               }).then((result) => {
                 if (result.isConfirmed) {
-                  Router.reload(window.location.pathname);
+                  // Router.reload(window.location.pathname);
                 }
               });
             }
@@ -336,7 +302,7 @@ export default function CreatePo() {
               <Container>
                 <Grid container spacing={3}>
                   <Grid item xs={12} align="center">
-                    <Typography variant="h6">PO Creation</Typography>
+                    <Typography variant="h6">Sales Order Creation</Typography>
                   </Grid>
                   <Grid
                     item
@@ -353,13 +319,13 @@ export default function CreatePo() {
                             ...SelectVendorBtnStyle,
                             ...transitionStyle[state],
                           }}
-                          options={suppliers}
+                          options={customerList}
                           getOptionLabel={(option) => option.Company_name_ch}
                           renderInput={(params) => (
-                            <TextField {...params} label="Vendor" />
+                            <TextField {...params} label="Customer Name" />
                           )}
                           onChange={(event, value) => {
-                            setSelectedSupplier(value);
+                            setSelectedCustomer(value);
                             if (value) {
                               setSelected(true);
                             } else {
@@ -375,14 +341,53 @@ export default function CreatePo() {
                     <Grid container spacing={1.5} mt={0.5}>
                       <Grid item xs={2}>
                         <TextFieldWrapper
-                          fullWidth
-                          name="ID"
-                          label="Vendor ID"
                           disabled
+                          fullWidth
+                          name="CustomerID"
+                          label="Customer ID"
                         />
                       </Grid>
                       <Grid item xs={2}>
-                        <DatePicker fullWidth name="PoDate" label="PO Date" />
+                        <TextFieldWrapper
+                          fullWidth
+                          required
+                          name="CustomerOrderNumber"
+                          label="Customer Order #"
+                        />
+                      </Grid>
+                      <Grid item xs={2}>
+                        <TextFieldWrapper
+                          fullWidth
+                          name="ReferenceNumber"
+                          label="Reference Number"
+                        />
+                      </Grid>
+
+                      <Grid item xs={2}>
+                        <DatePicker
+                          fullWidth
+                          name="SalesOrderDate"
+                          label="Order Date"
+                        />
+                      </Grid>
+                      <Grid item xs={2}>
+                        <Selector
+                          fullWidth
+                          required
+                          name="Currency"
+                          label="Currency"
+                          defaultValue=""
+                          options={["", "USD", "TWD", "RMB"]}
+                        />
+                      </Grid>
+
+                      <Grid item xs={2}>
+                        <TextFieldWrapper
+                          fullWidth
+                          required
+                          name="Incoterms"
+                          label="Incoterms"
+                        />
                       </Grid>
 
                       <Grid item xs={2}>
@@ -408,33 +413,37 @@ export default function CreatePo() {
                           fullWidth
                           name="ContactPerson"
                           label="Contact Person"
+                          disabled
                         />
                       </Grid>
-
                       <Grid item xs={2}>
-                        <Selector
+                        <TextFieldWrapper
                           fullWidth
-                          name="Currency"
-                          label="Currency"
-                          defaultValue=""
-                          options={["", "USD", "TWD", "RMB"]}
+                          name="Email"
+                          label="Email"
+                          disabled
                         />
                       </Grid>
 
                       <Grid item xs={10} sx={{ width: "100%" }}>
                         <TextFieldWrapper
                           fullWidth
-                          name="Address"
-                          label="Address"
-                          disabled
+                          name="BillingAddress"
+                          label="Billing Address"
                         />
                       </Grid>
                       <Grid item xs={2}>
+                        <TextFieldWrapper name="BillingZip" label="Zip Code" />
+                      </Grid>
+                      <Grid item xs={10} sx={{ width: "100%" }}>
                         <TextFieldWrapper
-                          name="Zip_Code"
-                          label=" Zip Code"
-                          disabled
+                          fullWidth
+                          name="DeliveryAddress"
+                          label="Delivery Address"
                         />
+                      </Grid>
+                      <Grid item xs={2}>
+                        <TextFieldWrapper name="DeliveryZip" label="Zip Code" />
                       </Grid>
 
                       <Grid item xs={12}>
@@ -444,7 +453,7 @@ export default function CreatePo() {
                           label="Remark"
                           multiline={true}
                           defaultValue=""
-                          rows={3}
+                          rows={2}
                         />
                       </Grid>
                     </Grid>
@@ -484,13 +493,10 @@ export default function CreatePo() {
                                   sx={{}}
                                   onClick={() => {
                                     arrayHelper.push({
-                                      Application: { value: "" },
                                       BurnOption: { value: "" },
                                       ETD: "",
-                                      Packaging: { value: "" },
                                       QTY: "",
-                                      UnitCost: "",
-                                      customer: "",
+                                      UnitPrice: 0,
                                       product: "",
                                       remark: "",
                                     });

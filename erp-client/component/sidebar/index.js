@@ -214,7 +214,7 @@ const Sidebar = () => {
       <Collapse in={titleOpen.salesOrder} timeout="auto" unmountOnExit>
         <List component="div" disablePadding>
           <ListItemButton sx={{ pl: 12 }} onClick={() => setState(false)}>
-            <Link href="/master_data/customer_master">
+            <Link href="/sales/create_sales_order">
               <ListItemText
                 primary={
                   <Typography sx={{ fontSize: "0.8rem", color: "blue" }}>
@@ -225,7 +225,7 @@ const Sidebar = () => {
             </Link>
           </ListItemButton>
           <ListItemButton sx={{ pl: 12 }} onClick={() => setState(false)}>
-            <Link href="/master_data/supplier_master">
+            <Link href="/sales/salesOrder_list">
               <ListItemText
                 primary={
                   <Typography sx={{ fontSize: "0.8rem", color: "blue" }}>

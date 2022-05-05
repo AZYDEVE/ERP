@@ -109,12 +109,12 @@ router.post("/getpo", async (req, res) => {
   // JOIN (SELECT * FROM po_db.po_detail AS pd where pd.poID =${param.poID})as a  where pro.ID = a.ProductID `;
 
   const sqlStrPoDetail = `SELECT podetail.ID as PoItemIndex, JSON_OBJECT("PartNumber", pro.PartNumber , "ID", pro.ID, "description", pro.description, "VendorNumber", pro.VendorNumber, "Cost", pro.Cost, "Price", pro.Price, "Remark", pro.Remark, "ReceiveStatus",podetail.ReceiveStatus) as product , 
-                          JSON_OBJECT("ID", customer.ID, "Company_name_ch", customer.Company_name_ch) as customer,
-                          JSON_OBJECT("value",Application) as Application,JSON_OBJECT("value",BurnOption) as BurnOption, ETD, JSON_OBJECT("value",Packaging) as Packaging, QTY, podetail.UnitCost  , podetail.Remark,
+                          JSON_OBJECT("ID", customer.CustomerID, "Company_name_ch",  COALESCE(customer.Company_name_ch,"")) as customer,
+                          JSON_OBJECT("value",COALESCE(podetail.Application,"")) as Application,JSON_OBJECT("value",podetail.BurnOption) as BurnOption, ETD, JSON_OBJECT("value",podetail.Packaging) as Packaging, QTY, podetail.UnitCost  , podetail.Remark,
                           cast(IFNULL(SUM(RD.ReceiveQTY),0) as double) as "ReceivedQTY" , podetail.ReceiveStatus
 	                        FROM master_db.product as pro 
                           JOIN (SELECT * FROM po_db.po_detail AS pd where pd.poID = ${param.poID} ) as podetail ON pro.ID = podetail.ProductID
-                          JOIN (SELECT * FROM master_db.customer ) as customer ON customer.ID = podetail.CustomerID
+                          LEFT JOIN (SELECT * FROM master_db.customer ) as customer ON customer.CustomerID = podetail.CustomerID
                           LEFT JOIN (SELECT * FROM po_db.receiving_document  as receiveDocument WHERE receiveDocument.PoNumber = ${param.poID}) as RD ON RD.PoItemIndex = podetail.ID
                           GROUP BY (poDetail.ID)`;
 

@@ -10,13 +10,12 @@ const CustomSelect = ({ name, options, ...otherProps }) => {
   };
 
   const configSelect = {
-    ...field,
-
-    ...otherProps,
     select: true,
     varient: "outlined",
     fullWidth: true,
     onChange: hangleChange,
+    ...field,
+    ...otherProps,
   };
 
   if (meta && meta.error && meta.touched) {

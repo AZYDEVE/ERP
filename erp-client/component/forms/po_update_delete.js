@@ -46,14 +46,14 @@ export default function PoUpdateDelete({ poInfo }) {
           value: yup.string().required("required"),
         }),
         ETD: yup.date().required("required"),
-        Packaging: yup.object().shape({
-          value: yup.string().required("required"),
-        }),
+        // Packaging: yup.object().shape({
+        //   value: yup.string().required("required"),
+        // }),
         QTY: yup.number().required("required"),
         UnitCost: yup.number().required("required"),
-        customer: yup.object().shape({
-          Company_name_ch: yup.string().required("required!"),
-        }),
+        // customer: yup.object().shape({
+        //   Company_name_ch: yup.string().required("required!"),
+        // }),
         product: yup.object().shape({
           PartNumber: yup.string().required("required"),
         }),

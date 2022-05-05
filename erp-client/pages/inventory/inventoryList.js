@@ -1,13 +1,22 @@
 import React, { useState, useEffect } from "react";
 import MUIDataTable, { ExpandButton } from "mui-datatables";
 
-import { TableCell, TableRow, Container, Table, Box, Tab } from "@mui/material";
+import {
+  TableCell,
+  TableRow,
+  Container,
+  Table,
+  Box,
+  Modal,
+} from "@mui/material";
 import ChangeCircleIcon from "@mui/icons-material/ChangeCircle";
 
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { CacheProvider } from "@emotion/react";
 import createCache from "@emotion/cache";
 import { getInventoryList } from "../../util/api_call/inventory_api_call";
+
+import InventoryTransferConversionForm from "../../component/forms/inventory_transfer_conversion";
 import { ConstructionOutlined } from "@mui/icons-material";
 import { padding } from "@mui/system";
 
@@ -18,6 +27,8 @@ const muiCache = createCache({
 
 export default function InventoryList() {
   const [data, setData] = useState([]);
+  const [modalIsOpen, setModalIsOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(false);
 
   useEffect(async () => {
     const result = await getInventoryList();
@@ -48,7 +59,7 @@ export default function InventoryList() {
     filter: true,
     filterType: "dropdown",
     responsive: "standard",
-    selectableRows: false,
+    selectableRows: "none",
     expandableRows: true,
     expandableRowsHeader: true,
     expandableRowsOnClick: true,
@@ -66,19 +77,22 @@ export default function InventoryList() {
             <TableCell colSpan={3} />
             <TableCell>Location</TableCell>
             <TableCell>BurnOption</TableCell>
-            <TableCell>codeVersion</TableCell>
+            <TableCell>CodeVersion</TableCell>
+            <TableCell>DateCode</TableCell>
+            <TableCell>LotNumber</TableCell>
             <TableCell>QTY</TableCell>
             <TableCell align="center">Conversion & Transfer</TableCell>
           </TableRow>
 
           {data[rowMeta.dataIndex].QtyByProductStatus.map((item, index) => {
-            console.log(item.Location);
             return (
               <TableRow hover>
                 <TableCell colSpan={3} />
                 <TableCell>{item.Location}</TableCell>
                 <TableCell>{item.BurnOption}</TableCell>
                 <TableCell>{item.CodeVersion}</TableCell>
+                <TableCell>{item.DateCode}</TableCell>
+                <TableCell>{item.LotNumber}</TableCell>
                 <TableCell>{item.QTY}</TableCell>
                 <TableCell
                   sx={{
@@ -86,7 +100,11 @@ export default function InventoryList() {
                       cursor: "pointer",
                     },
                   }}
-                  align="center">
+                  align="center"
+                  onClick={() => {
+                    setModalIsOpen(true);
+                    setSelectedItem({ ...item, PartNumber: rowData[0] });
+                  }}>
                   <ChangeCircleIcon />
                 </TableCell>
               </TableRow>
@@ -100,23 +118,21 @@ export default function InventoryList() {
   };
 
   const theme = createTheme({
+    palette: {
+      primary: {
+        main: "#B8B8B8",
+      },
+    },
     components: {
-      MUIDataTable: {
+      MuiButton: {
         styleOverrides: {
-          paper: {
-            boxShadow: "none",
-            border: "1px solid lightgray",
-            borderRadius: "7px",
-          },
-        },
-      },
-      MUIDataTableBodyCell: {
-        styleOverrides: {
+          // Name of the slot
           root: {
-            fontWeight: 500,
+            // Some CSS
           },
         },
       },
+
       MUIDataTableHeadCell: {
         styleOverrides: {
           root: {},
@@ -127,8 +143,6 @@ export default function InventoryList() {
 
   const components = {
     ExpandButton: function (props) {
-      if (props.dataIndex === 3 || props.dataIndex === 4)
-        return <div style={{ width: "24px" }} />;
       return (
         <div style={{ paddingLeft: "20px" }}>
           <ExpandButton {...props} />
@@ -139,17 +153,35 @@ export default function InventoryList() {
 
   return (
     <Container>
-      <CacheProvider value={muiCache}>
-        <ThemeProvider theme={theme}>
-          <MUIDataTable
-            title={"INVENTORY LIST"}
-            data={data}
-            columns={columns}
-            options={options}
-            components={components}
-          />
-        </ThemeProvider>
-      </CacheProvider>
+      <MUIDataTable
+        title={"INVENTORY LIST"}
+        data={data}
+        columns={columns}
+        options={options}
+        components={components}
+      />
+      <Modal
+        open={modalIsOpen}
+        onClose={() => {
+          setModalIsOpen(false);
+        }}>
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: "80vw",
+            height: "90vh",
+            bgcolor: "background.paper",
+            border: "2px solid #000",
+            boxShadow: 24,
+            p: 4,
+            overflow: "scroll",
+          }}>
+          <InventoryTransferConversionForm itemInfo={selectedItem} />
+        </Box>
+      </Modal>
     </Container>
   );
 }

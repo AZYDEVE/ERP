@@ -31,9 +31,25 @@ const Theme = createTheme({
         },
       },
     },
+    MUIDataTable: {
+      styleOverrides: {
+        paper: {
+          boxShadow: "none",
+          border: "1px solid lightgray",
+          borderRadius: "7px",
+        },
+      },
+    },
+    MUIDataTableBodyCell: {
+      styleOverrides: {
+        root: {
+          fontWeight: 500,
+        },
+      },
+    },
   },
   zIndex: {
-    modal: 2,
+    modal: 999,
   },
 });
 

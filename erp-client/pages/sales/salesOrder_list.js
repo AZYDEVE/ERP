@@ -2,23 +2,23 @@ import { DataGrid } from "@mui/x-data-grid";
 import RingLoader from "react-spinners/RingLoader";
 import { useEffect, useState } from "react";
 import { Grid, Backdrop, Typography, Box, Modal } from "@mui/material";
-import { getListOpenPO } from "../../util/api_call/po_api_call";
+import { get_list_salesOrder } from "../../util/api_call/salesOrder_api_call";
 import Swal from "sweetalert2";
-import PoUpdateDelete from "../../component/forms/po_update_delete";
+import SalesOrderUpdateDelete from "../../component/forms/salesOrder_update_delete_form";
 
-const Polist = () => {
-  const [poList, setPoList] = useState("");
+const SOlist = () => {
+  const [salesList, setSalesList] = useState("");
   const [spiner, setSpiner] = useState(false);
   const [modalIsOpen, setModalIsOpen] = useState(false);
-  const [selectedPo, setSelectedPo] = useState("");
+  const [selectedSales, setSelectedSales] = useState("");
 
   useEffect(() => {
-    const getOpenPo = async () => {
+    const getOpenSO = async () => {
       try {
-        const result = await getListOpenPO();
+        const result = await get_list_salesOrder();
 
-        setPoList(result.data);
-        console.log(poList);
+        setSalesList(result.data);
+        console.log(salesList);
       } catch (err) {
         Swal.fire({
           title: `SOMETHING WENT WRONG `,
@@ -28,22 +28,22 @@ const Polist = () => {
         });
       }
     };
-    getOpenPo();
+    getOpenSO();
   }, []);
 
   const generateColumn = () => {
-    return Object.keys(poList[0]).map((keyName, index) => {
+    return Object.keys(salesList[0]).map((keyName, index) => {
       return {
         field: keyName,
         headerName: keyName,
-        flex: keyName == "id" ? 0.5 : 1,
         headerClassName: "datagridHeader",
         headerAlign: "left",
+        flex: keyName == "id" ? 0.5 : 1,
       };
     });
   };
 
-  if (!poList) {
+  if (!salesList) {
     return (
       <>
         <Backdrop
@@ -58,7 +58,7 @@ const Polist = () => {
   return (
     <Grid container justifyContent="center">
       <Grid item xs={12} align="center">
-        <Typography variant="h6">PO List</Typography>
+        <Typography variant="h6">Sales Order List</Typography>
       </Grid>
       <Grid item xs={7.5} mt={2}>
         <Box sx={{ height: "85vh", width: "100%" }}>
@@ -66,16 +66,15 @@ const Polist = () => {
             // align="center"
             headerHeight={50}
             rowHeight={60}
-            rows={poList}
+            rows={salesList}
             border
             columns={generateColumn()}
             sx={{ ".datagridHeader": { backgroundColor: "primary.main" } }}
             onRowClick={(event, index) => {
               console.log(event.row.id);
               setModalIsOpen(true);
-              setSelectedPo({
-                poID: event.row.id,
-                vendorID: event.row["Vendor ID"],
+              setSelectedSales({
+                salesOrderID: event.row.id,
               });
               console.log(event);
             }}
@@ -101,11 +100,11 @@ const Polist = () => {
             p: 4,
             overflow: "scroll",
           }}>
-          <PoUpdateDelete poInfo={selectedPo} />
+          <SalesOrderUpdateDelete salesOrderID={selectedSales} />
         </Box>
       </Modal>
     </Grid>
   );
 };
 
-export default Polist;
+export default SOlist;

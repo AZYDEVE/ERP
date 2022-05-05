@@ -30,10 +30,10 @@ let initialValue = {
   Website: "",
   Tel: "",
   Fax: "",
-  Zip_Code: "",
-  Address: "",
-  Zip_code_2: "",
-  Address_2: "",
+  BillingZip: "",
+  BillingAddress: "",
+  DeliveryZip: "",
+  DeliveryAddress: "",
   Payment_term: "",
   Sub_Date: null,
   Payment_date: null,
@@ -103,18 +103,22 @@ export default function AddCustomerForm() {
             </Grid>
 
             <Grid item xs={10}>
-              <TextField name="Address" label="Address" required />
+              <TextField
+                name="BillingAddress"
+                label="Billing Address"
+                required
+              />
             </Grid>
             <Grid item xs={2}>
-              <TextField name="Zip_Code" label=" Zip Code" />
+              <TextField name="BillingZip" label="Zip" />
             </Grid>
 
             <Grid item xs={10}>
-              <TextField name="Address_2" label="Address-2" />
+              <TextField name="DeliveryAddress" label="Delivery Address" />
             </Grid>
 
             <Grid item xs={2}>
-              <TextField name="Zip_Code_2" label=" Zip Code-2" />
+              <TextField name="DeliveryZip" label="Zip" />
             </Grid>
           </Grid>
 

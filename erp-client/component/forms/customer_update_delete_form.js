@@ -15,12 +15,11 @@ import CustomSelect from "./formComponent/select";
 
 const customerSchema = yup.object().shape({
   Area: yup.string().required("required!"),
-  email: yup.string().email("invalid email format"),
   Tier: yup.string().required("required!"),
   Brand: yup.string().required("required!"),
   Company_name_ch: yup.string().required("required!"),
   Tel: yup.number().integer("no decimal").required("required!"),
-  Address: yup.string().required("required!"),
+  BillingAddress: yup.string().required("required!"),
 });
 
 export default function UpdateDeleteCustomerForm({ customerData }) {
@@ -38,7 +37,7 @@ export default function UpdateDeleteCustomerForm({ customerData }) {
     const result = await axios.post(
       "http://localhost:3001/customer/deletecustomer",
       {
-        ID: customerData.ID,
+        CustomerID: customerData.CustomerID,
       }
     );
 
@@ -168,32 +167,33 @@ export default function UpdateDeleteCustomerForm({ customerData }) {
 
               <Grid item xs={10}>
                 <TextField
-                  name="Address"
-                  label="Address"
+                  name="BillingAddress"
+                  label="Billing Address"
                   disabled={isDisable}
                   required
                 />
               </Grid>
               <Grid item xs={2}>
                 <TextField
-                  name="Zip_Code"
-                  label=" Zip Code"
+                  name="BillingZip"
+                  label="Billing Zip"
                   disabled={isDisable}
                 />
               </Grid>
 
               <Grid item xs={10}>
                 <TextField
-                  name="Address_2"
-                  label="Address-2"
+                  required
+                  name="DelieryAddress"
+                  label="Delivery Address"
                   disabled={isDisable}
                 />
               </Grid>
 
               <Grid item xs={2}>
                 <TextField
-                  name="Zip_Code_2"
-                  label=" Zip Code-2"
+                  name="DeliveryZip"
+                  label="Delivery Zip"
                   disabled={isDisable}
                 />
               </Grid>
@@ -218,8 +218,8 @@ export default function UpdateDeleteCustomerForm({ customerData }) {
               </Grid>
               <Grid item xs={3}>
                 <DatePicker
-                  name="Payment_date"
-                  label="Payment_date"
+                  name="Payment_Date"
+                  label="Payment_Date"
                   disabled={isDisable}
                 />
               </Grid>

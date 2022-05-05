@@ -62,13 +62,13 @@ router.post("/insertReceiveDocument", (req, res) => {
         ProductID: product.ProductID,
         ReceiveDate: product.ReceiveDate,
         ReceiveQTY: receiveItem.ReceiveQTY,
-        UnitCost: product.UnitCost,
         Remark: product.Remark,
+        UnitCost: product.UnitCost,
         VendorInvoiceNumber: data.vendorInvoice,
         CodeVersion: receiveItem.CodeVersion,
         Location: receiveItem.Location,
         LotNumber: receiveItem.Lot,
-        ProgramedOptions: product.BurnOption,
+        BurnOption: product.BurnOption,
         DateCode: receiveItem.DateCode,
       };
       newJSON.push(newOBJ);
