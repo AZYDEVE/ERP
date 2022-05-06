@@ -112,7 +112,7 @@ WHERE
 router.post("/getSalesOrderDetail", (req, res) => {
   const param = req.body;
   console.log(param);
-  const sqlSOStr = `SELECT SalesOrderID, Company_name_ch, so.CustomerID, 
+  const sqlSOStr = `SELECT SalesOrderID, Company_name_ch, so.CustomerID, so.CustomerOrderNumber, 
   ReferenceNumber,SalesOrderDate, Currency, Incoterms, Tel, Fax, ContactPerson,
   Email, BillingAddress, BillingZip, so.DeliveryAddress, so.DeliveryZip, 
   so.Remark  
@@ -122,10 +122,10 @@ router.post("/getSalesOrderDetail", (req, res) => {
   WHERE so.salesOrderID= ${param.salesOrderID}`;
 
   const sqlSODtailStr = `
-  SELECT 
-  PartNumber,
-  salesDetails.ProductID,
-  salesDetails.BurnOption,
+  SELECT
+  salesDetails.SoDetailID, 
+  JSON_OBJECT("ProductID", salesDetails.ProductID,"PartNumber", product.PartNumber) as product,
+  JSON_OBJECT("value",salesDetails.BurnOption) as BurnOption,
   salesDetails.ETD,
   salesDetails.QTY,
   CAST(COALESCE(SUM(deliveryDetail.DeliveryQTY), 0) AS SIGNED) AS DeliveryQTY,
@@ -157,6 +157,61 @@ GROUP BY salesDetails.SoDetailID`;
       console.log(err);
       res.status(500).json(err);
     });
+});
+
+router.post("/deleteSalesOrder", (req, res) => {
+  const param = req.body;
+  console.log(param);
+  db.getConnection(function (err, connection) {
+    connection.beginTransaction(function (err) {
+      if (err) {
+        throw err;
+      }
+
+      connection.query(
+        `DELETE FROM sales_db.sales_order_detail WHERE SalesOrderID = ${param.salesOrderID}`,
+        (err, results, feilds) => {
+          if (err) {
+            return connection.rollback(function () {
+              connection.release();
+              res.status(500).send(err);
+              throw err;
+            });
+          }
+
+          console.log(results);
+
+          connection.query(
+            `DELETE FROM sales_db.sales_order WHERE SalesOrderID = ${param.salesOrderID}`,
+            (err, results, fields) => {
+              if (err) {
+                return connection.rollback(function () {
+                  connection.release();
+                  res.status(500).send(err);
+                  throw err;
+                });
+              }
+
+              console.log(results);
+              connection.commit(function (err) {
+                if (err) {
+                  return connection.rollback(function () {
+                    connection.release();
+                    res.status(500).send(err);
+                    throw err;
+                  });
+                } else {
+                  connection.release();
+                  res.status(200).json({ message: 1 });
+                  console.log("success!");
+                }
+              });
+            }
+          );
+        }
+      );
+    });
+  });
 });
 
 module.exports = router;

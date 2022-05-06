@@ -2,19 +2,15 @@ import { useEffect, useState } from "react";
 import {
   Container,
   Grid,
-  Collapse,
   TextField,
-  Autocomplete,
   Typography,
   Button,
   Box,
   Backdrop,
 } from "@mui/material";
-
+import DeleteIcon from "@mui/icons-material/Delete";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import { get_productList } from "../../util/api_call/product_api_call";
-import { get_customer_list } from "../../util/api_call/customer_api_call";
-import { Transition } from "react-transition-group";
 import TextFieldWrapper from "../../component/forms/formComponent/field";
 import DatePicker from "../../component/forms/formComponent/datePicker";
 import Selector from "../../component/forms/formComponent/select";
@@ -30,6 +26,7 @@ import Swal from "sweetalert2";
 import {
   create_salesOrder,
   get_sales_order_detail,
+  delete_sales_order,
 } from "../../util/api_call/salesOrder_api_call";
 
 export default function salesorderUpdateDelete({ salesOrderID }) {
@@ -51,7 +48,18 @@ export default function salesorderUpdateDelete({ salesOrderID }) {
         QTY: yup
           .number()
           .moreThan(0, "Must be greater than 0")
-          .required("required"),
+          .required("required")
+          .test(
+            "checkIfSmallerThanDeliveryQTY",
+            "Cannot be less than Delivery QTY",
+            (value, schema) => {
+              const d = schema.from[0].value;
+              if (value < schema.from[0].value.DeliveryQTY) {
+                return false;
+              }
+              return true;
+            }
+          ),
         UnitPrice: yup
           .number()
           .min(0, "cannot be negative")
@@ -68,9 +76,8 @@ export default function salesorderUpdateDelete({ salesOrderID }) {
   });
 
   const [salesOrderDetail, setSalesOrderDetail] = useState(null);
-
   const [productList, setProductList] = useState(null);
-
+  const [isSoDeletable, setSoDeletable] = useState(true);
   const [spiner, setSpiner] = useState(false);
 
   useEffect(async () => {
@@ -86,6 +93,7 @@ export default function salesorderUpdateDelete({ salesOrderID }) {
     if (result.data) {
       console.log(result);
       setSalesOrderDetail(result.data);
+      checkIfAnyDelivery(result.data.orderProduct);
     }
   }, []);
 
@@ -95,6 +103,43 @@ export default function salesorderUpdateDelete({ salesOrderID }) {
     }
     return 0;
   };
+
+  const checkIfAnyDelivery = (data) => {
+    for (let i = 0; i < data.length; i++) {
+      if (data[i].DeliveryQTY > 0) {
+        setSoDeletable(false);
+        return;
+      }
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      const result = await delete_sales_order(salesOrderID);
+      setSpiner(false);
+      if (result.status >= 200 || result.status <= 299) {
+        Swal.fire({
+          title: `SUCCESS`,
+          text: `SALES ORDER# : ${result.data.message}`,
+          icon: "success",
+          showConfirmButton: true,
+        }).then((result) => {
+          if (result.isConfirmed) {
+            // Router.reload(window.location.pathname);
+          }
+        });
+      }
+    } catch (err) {
+      setSpiner(false);
+      Swal.fire({
+        title: `SOMETHING WENT WRONG `,
+        text: err,
+        icon: "error",
+        showConfirmButton: true,
+      });
+    }
+  };
+
   if (!productList || !salesOrderDetail) {
     return (
       <>
@@ -146,7 +191,7 @@ export default function salesorderUpdateDelete({ salesOrderID }) {
         </Grid>
         <Grid item xs={10.7}>
           <Grid container spacing={1}>
-            <Grid item xs={3.2}>
+            <Grid item xs={3}>
               <CustomAutocomplete
                 required
                 name={`orderProduct[${index}].product`}
@@ -154,10 +199,11 @@ export default function salesorderUpdateDelete({ salesOrderID }) {
                 selectionLabel="PartNumber"
                 recordValueField={`orderProduct[${index}].product`}
                 option={productList}
+                disabled={values.DeliveryQTY == 0 ? false : true}
               />
             </Grid>
 
-            <Grid item xs={2.4}>
+            <Grid item xs={3}>
               <CustomAutocomplete
                 required
                 fullWidth
@@ -171,48 +217,64 @@ export default function salesorderUpdateDelete({ salesOrderID }) {
                   { value: "Keyed" },
                   { value: "Coded & Keyed" },
                 ]}
+                disabled={values.DeliveryQTY == 0 ? false : true}
               />
             </Grid>
-            <Grid item xs={1.8}>
+            <Grid item xs={2}>
               <DatePicker
                 required
                 fullWidth
                 name={`orderProduct[${index}].ETD`}
                 label="Est delivery date"
+                disabled={values.DeliveryQTY == 0 ? false : true}
               />
             </Grid>
-
-            <Grid item xs={1.5}>
-              <TextFieldWrapper
-                required
-                fullWidth
-                type="number"
-                name={`orderProduct[${index}].QTY`}
-                label="QTY"
-              />
-            </Grid>
-
-            <Grid item xs={1.5}>
-              <TextFieldWrapper
-                required
-                fullWidth
-                name={`orderProduct[${index}].UnitPrice`}
-                label="Unit Price"
-                type="number"
-              />
-            </Grid>
-            <Grid item xs={1.6}>
-              <TextField
-                fullWidth
-                name={`orderProduct[${index}].totalPrice`}
-                label="Total Price"
-                value={calculateTotalCost(values, index)}
-                type="number"
-                inputProps={{ readOnly: true, shrink: true }}
-              />
-            </Grid>
-
             <Grid item xs={12}>
+              <Grid container spacing={1} mt={0.1}>
+                <Grid item xs={2}>
+                  <TextFieldWrapper
+                    required
+                    fullWidth
+                    type="number"
+                    name={`orderProduct[${index}].QTY`}
+                    label="Order QTY"
+                  />
+                </Grid>
+
+                <Grid item xs={2}>
+                  <TextFieldWrapper
+                    disabled
+                    fullWidth
+                    type="number"
+                    name={`orderProduct[${index}].DeliveryQTY`}
+                    label="Delivery QTY"
+                  />
+                </Grid>
+
+                <Grid item xs={2}>
+                  <TextFieldWrapper
+                    required
+                    fullWidth
+                    name={`orderProduct[${index}].UnitPrice`}
+                    label="Unit Price"
+                    type="number"
+                    disabled={values.DeliveryQTY == 0 ? false : true}
+                  />
+                </Grid>
+                <Grid item xs={2}>
+                  <TextField
+                    fullWidth
+                    name={`orderProduct[${index}].totalPrice`}
+                    label="Total Price"
+                    value={calculateTotalCost(values, index)}
+                    type="number"
+                    inputProps={{ readOnly: true, shrink: true }}
+                  />
+                </Grid>
+              </Grid>
+            </Grid>
+
+            <Grid item xs={12} mt={1}>
               <TextFieldWrapper
                 fullWidth
                 name={`orderProduct[${index}].remark`}
@@ -233,12 +295,16 @@ export default function salesorderUpdateDelete({ salesOrderID }) {
             justifyContent: "center",
             alignItems: "center",
           }}>
-          <RemoveCircleOutlineIcon
-            sx={{ fontSize: "2.1rem", cursor: "pointer" }}
-            onClick={() => {
-              formikArrayHelperFunction.remove(index);
-            }}
-          />
+          {values.DeliveryQTY == 0 ? (
+            <RemoveCircleOutlineIcon
+              sx={{ fontSize: "2.1rem", cursor: "pointer" }}
+              onClick={() => {
+                formikArrayHelperFunction.remove(index);
+              }}
+            />
+          ) : (
+            ""
+          )}
         </Grid>
       </Grid>
     );
@@ -443,6 +509,19 @@ export default function salesorderUpdateDelete({ salesOrderID }) {
                             justifyContent="center"
                             mt={2}
                             spacing={2}>
+                            <Grid item>
+                              {isSoDeletable ? (
+                                <Button
+                                  variant="contained"
+                                  size="large"
+                                  sx={{ color: "red" }}
+                                  onClick={handleDelete}>
+                                  <DeleteIcon />
+                                </Button>
+                              ) : (
+                                ""
+                              )}
+                            </Grid>
                             {values.orderProduct.length > 0 ? (
                               <Grid item>
                                 <SubmitButtom

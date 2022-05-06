@@ -37,3 +37,16 @@ export const get_sales_order_detail = async (salesOrderID) => {
     throw new Error(err);
   }
 };
+
+export const delete_sales_order = async (salesOrderID) => {
+  try {
+    const result = await axios.post(
+      process.env.NEXT_PUBLIC_SERVER_HOST + "/salesOrder/deleteSalesOrder",
+      salesOrderID
+    );
+
+    return result;
+  } catch (err) {
+    throw new Error(err);
+  }
+};
