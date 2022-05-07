@@ -152,6 +152,21 @@ export default function PoUpdateDelete({ poInfo }) {
       }
     });
   };
+
+  const checkPoComplete = (po) => {
+    let numItemComplete = 0;
+    po.orderProduct.map((item, index) => {
+      if (item.QTY == item.ReceivedQTY) {
+        item.ReceiveStatus = "Completed";
+        numItemComplete += 1;
+      }
+    });
+
+    if (po.orderProduct.length === numItemComplete) {
+      po.Status = "completed";
+    }
+  };
+
   if (!po || !suppliers || !productList || !customerList) {
     return (
       <>
@@ -387,9 +402,7 @@ export default function PoUpdateDelete({ poInfo }) {
           console.log(values);
           // setSpiner(true);
 
-          values.orderProduct.map((value, index) => {
-            value.ETD = moment(value.ETD).format("YYYY-MM-DD") + "";
-          });
+          checkPoComplete(values);
 
           try {
             const result = await updatePO(values);
@@ -560,7 +573,7 @@ export default function PoUpdateDelete({ poInfo }) {
                                     variant="contained"
                                     size="large"
                                     sx={{ color: "red" }}>
-                                    Submit
+                                    update
                                   </SubmitButtom>
                                 </Grid>
                               </>

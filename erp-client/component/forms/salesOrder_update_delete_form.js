@@ -27,6 +27,7 @@ import {
   create_salesOrder,
   get_sales_order_detail,
   delete_sales_order,
+  update_sales_order,
 } from "../../util/api_call/salesOrder_api_call";
 
 export default function salesorderUpdateDelete({ salesOrderID }) {
@@ -67,7 +68,6 @@ export default function salesorderUpdateDelete({ salesOrderID }) {
         product: yup
           .object()
           .shape({
-            ID: yup.number().required("required"),
             PartNumber: yup.string().required("required"),
           })
           .required("required"),
@@ -137,6 +137,20 @@ export default function salesorderUpdateDelete({ salesOrderID }) {
         icon: "error",
         showConfirmButton: true,
       });
+    }
+  };
+
+  const checkSoComplete = (so) => {
+    let numItemComplete = 0;
+    so.orderProduct.map((item, index) => {
+      if (item.QTY == item.DeliveryQTY) {
+        item.ReceiveStatus = "Completed";
+        numItemComplete += 1;
+      }
+    });
+
+    if (so.orderProduct.length === numItemComplete) {
+      so.Status = "completed";
     }
   };
 
@@ -321,8 +335,10 @@ export default function salesorderUpdateDelete({ salesOrderID }) {
         validationSchema={validationSchema}
         onSubmit={async (values) => {
           setSpiner(true);
+
+          checkSoComplete(values);
           try {
-            const result = await create_salesOrder(values);
+            const result = await update_sales_order(values);
             setSpiner(false);
             if (result.status >= 200 || result.status <= 299) {
               Swal.fire({
@@ -528,7 +544,7 @@ export default function salesorderUpdateDelete({ salesOrderID }) {
                                   variant="contained"
                                   size="large"
                                   sx={{ color: "red" }}>
-                                  Submit
+                                  update
                                 </SubmitButtom>
                               </Grid>
                             ) : null}
@@ -540,7 +556,10 @@ export default function salesorderUpdateDelete({ salesOrderID }) {
                                 sx={{}}
                                 onClick={() => {
                                   arrayHelper.push({
+                                    SoDetailID: "",
                                     BurnOption: { value: "" },
+                                    DeliveryQTY: 0,
+                                    DeliveryStatus: "open",
                                     ETD: "",
                                     QTY: "",
                                     UnitPrice: 0,

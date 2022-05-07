@@ -101,16 +101,13 @@ router.get("/getListOpenPo", (req, res) => {
 router.post("/getpo", async (req, res) => {
   const param = req.body;
   console.log(param);
-  const sqlPoStr = `SELECT VendorID,PoDate,Tel,Fax,ContactPerson,Currency,Company_name_ch,Address,Zip_code,po.Remark FROM (SELECT * FROM master_db.supplier as S WHERE S.ID = ${param.vendorID}) AS supplierDetail
+  const sqlPoStr = `SELECT poID, VendorID, DATE_FORMAT(PoDate, "%Y-%m-%d") as PoDate,Tel,Fax,ContactPerson,Currency,Company_name_ch,Address,Zip_code,po.Remark, po.Status FROM (SELECT * FROM master_db.supplier as S WHERE S.ID = ${param.vendorID}) AS supplierDetail
     JOIN (SELECT * FROM po_db.po as P WHERE P.poID =${param.poID}) As po 
     WHERE supplierDetail.ID = po.VendorID`;
 
-  // const sqlStrPoDetail = `SELECT * FROM master_db.product as pro
-  // JOIN (SELECT * FROM po_db.po_detail AS pd where pd.poID =${param.poID})as a  where pro.ID = a.ProductID `;
-
   const sqlStrPoDetail = `SELECT podetail.ID as PoItemIndex, JSON_OBJECT("PartNumber", pro.PartNumber , "ID", pro.ID, "description", pro.description, "VendorNumber", pro.VendorNumber, "Cost", pro.Cost, "Price", pro.Price, "Remark", pro.Remark, "ReceiveStatus",podetail.ReceiveStatus) as product , 
                           JSON_OBJECT("ID", customer.CustomerID, "Company_name_ch",  COALESCE(customer.Company_name_ch,"")) as customer,
-                          JSON_OBJECT("value",COALESCE(podetail.Application,"")) as Application,JSON_OBJECT("value",podetail.BurnOption) as BurnOption, ETD, JSON_OBJECT("value",podetail.Packaging) as Packaging, QTY, podetail.UnitCost  , podetail.Remark,
+                          JSON_OBJECT("value",COALESCE(podetail.Application,"")) as Application,JSON_OBJECT("value",podetail.BurnOption) as BurnOption, DATE_FORMAT(ETD,"%Y-%m-%d") as ETD, JSON_OBJECT("value",podetail.Packaging) as Packaging, QTY, podetail.UnitCost  , podetail.Remark,
                           cast(IFNULL(SUM(RD.ReceiveQTY),0) as double) as "ReceivedQTY" , podetail.ReceiveStatus
 	                        FROM master_db.product as pro 
                           JOIN (SELECT * FROM po_db.po_detail AS pd where pd.poID = ${param.poID} ) as podetail ON pro.ID = podetail.ProductID
@@ -172,6 +169,17 @@ router.post("/deletePo", (req, res) => {
 
 router.post("/updatePo", (req, res) => {
   const data = req.body;
+
+  const PoData = {
+    ContactPerson: data.ContactPerson,
+    Currency: data.Currency,
+    VendorID: data.VendorID,
+    PoDate: data.PoDate,
+    Remark: data.Remark,
+    Status: data.Status,
+  };
+
+  console.log(PoData);
   const ItemDataForUpdate = data.orderProduct.map((product, index) => {
     return {
       poID: data.poID,
@@ -202,68 +210,88 @@ router.post("/updatePo", (req, res) => {
       if (err) {
         throw err;
       }
-      // delete from db any po items removed by the user
+
       connection.query(
-        removePOItemsNotInCLIENT,
-        [itemInClient],
-        function (error, results, fields) {
-          if (error) {
+        `UPDATE po_db.po SET ${Object.keys(PoData).join("=?,")}=? WHERE poID=${
+          data.poID
+        }`,
+        Object.values(PoData),
+        (err, results, field) => {
+          if (err) {
             return connection.rollback(function () {
               connection.release();
-              throw error;
+              throw err;
             });
           }
 
-          console.log(results);
+          // delete from db any po items removed by the user
+          connection.query(
+            removePOItemsNotInCLIENT,
+            [itemInClient],
+            function (error, results, fields) {
+              if (error) {
+                return connection.rollback(function () {
+                  connection.release();
+                  throw error;
+                });
+              }
 
-          ItemDataForUpdate.map((item, index) => {
-            const { ID, ...otherFields } = item;
-            const key = Object.keys(otherFields);
-            const values = Object.values(otherFields);
-            console.log(ID);
-            console.log(values);
-            const sqlUpdate = `UPDATE po_db.po_detail SET ${key.join(
-              "=?,"
-            )} =? WHERE ID=${ID}`;
+              console.log(results);
 
-            // if the item has ID (PoItemIndex), then we can update the existing record for the item details
-            if (ID !== "") {
-              connection.query(sqlUpdate, values, (err, results, fields) => {
+              ItemDataForUpdate.map((item, index) => {
+                const { ID, ...otherFields } = item;
+                const key = Object.keys(otherFields);
+                const values = Object.values(otherFields);
+                console.log(ID);
+                console.log(values);
+                const sqlUpdate = `UPDATE po_db.po_detail SET ${key.join(
+                  "=?,"
+                )} =? WHERE ID=${ID}`;
+
+                // if the item has ID (PoItemIndex), then we can update the existing record for the item details
+                if (ID !== "") {
+                  connection.query(
+                    sqlUpdate,
+                    values,
+                    (err, results, fields) => {
+                      if (err) {
+                        return connection.rollback(function () {
+                          connection.release();
+                          console.log(err);
+                        });
+                      }
+                      console.log(results);
+                    }
+                  );
+                } else {
+                  // if the item does not have an ID (PoItemIndex), then we have to insert the new PO item into the db
+                  const newItemInsert = `INSERT INTO po_db.po_detail (${key.toString()}) values (?)`;
+                  connection.query(
+                    newItemInsert,
+                    [values],
+                    (err, results, fields) => {
+                      if (err) {
+                        return connection.rollback(function () {
+                          connection.release();
+                          console.log(err);
+                        });
+                      }
+                    }
+                  );
+                }
+              });
+
+              connection.commit(function (err) {
                 if (err) {
                   return connection.rollback(function () {
                     connection.release();
-                    console.log(err);
+                    throw err;
                   });
                 }
-                console.log(results);
-              });
-            } else {
-              // if the item does not have an ID (PoItemIndex), then we have to insert the new PO item into the db
-              const newItemInsert = `INSERT INTO po_db.po_detail (${key.toString()}) values (?)`;
-              connection.query(
-                newItemInsert,
-                [values],
-                (err, results, fields) => {
-                  if (err) {
-                    return connection.rollback(function () {
-                      connection.release();
-                      console.log(err);
-                    });
-                  }
-                }
-              );
-            }
-          });
-
-          connection.commit(function (err) {
-            if (err) {
-              return connection.rollback(function () {
-                connection.release();
-                throw err;
+                res.status(200).json({ message: "success" });
               });
             }
-            res.status(200).json({ message: "success" });
-          });
+          );
         }
       );
     });

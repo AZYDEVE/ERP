@@ -50,3 +50,16 @@ export const delete_sales_order = async (salesOrderID) => {
     throw new Error(err);
   }
 };
+
+export const update_sales_order = async (salesOrder) => {
+  try {
+    const result = await axios.post(
+      process.env.NEXT_PUBLIC_SERVER_HOST + "/salesOrder/updateSalesOrder",
+      salesOrder
+    );
+
+    return result;
+  } catch (err) {
+    throw new Error(err);
+  }
+};
