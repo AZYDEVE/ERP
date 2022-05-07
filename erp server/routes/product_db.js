@@ -37,7 +37,7 @@ router.post("/createProduct", (req, res) => {
 router.post("/deleteProduct", (req, res) => {
   console.log(req.body.id);
   db.query(
-    `DELETE FROM master_db.product WHERE ID=${req.body.ID}`,
+    `DELETE FROM master_db.product WHERE ProductID=${req.body.ProductID}`,
     (err, result, field) => {
       if (err) {
         console.log(err);
@@ -51,7 +51,7 @@ router.post("/deleteProduct", (req, res) => {
 router.post("/updateProduct", (req, res) => {
   let sqlStr = "UPDATE master_db.product SET ";
   Object.keys(req.body).map((key, index) => {
-    if (key !== "ID" && req.body[key] !== null) {
+    if (key !== "ProductID" && req.body[key] !== null) {
       sqlStr += key + `= "${req.body[key]}",`;
     }
 
@@ -60,7 +60,7 @@ router.post("/updateProduct", (req, res) => {
     }
   });
 
-  sqlStr = sqlStr.slice(0, -1) + ` Where ID=${req.body.ID}`;
+  sqlStr = sqlStr.slice(0, -1) + ` Where ProductID=${req.body.ID}`;
 
   db.query(sqlStr, (err, result, feild) => {
     if (err) {

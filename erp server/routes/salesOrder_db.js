@@ -142,7 +142,7 @@ FROM
       LEFT JOIN
   sales_db.delivery_detail deliveryDetail ON deliveryDetail.SoDetailID = salesDetails.SoDetailID
       LEFT JOIN
-  master_db.product product ON salesDetails.productID = product.ID
+  master_db.product product ON salesDetails.productID = product.ProductID
 GROUP BY salesDetails.SoDetailID`;
 
   const promisePool = db.promise();
@@ -237,7 +237,7 @@ router.post("/updateSalesOrder", (req, res) => {
   const ItemDataForUpdate = data.orderProduct.map((product, index) => {
     return {
       SoDetailID: product.SoDetailID,
-      BurnOption: product.BurnOption,
+      BurnOption: product.BurnOption.value,
       ETD: product.ETD,
       QTY: product.QTY,
       UnitPrice: product.UnitPrice,
@@ -249,8 +249,6 @@ router.post("/updateSalesOrder", (req, res) => {
   });
 
   console.log(ItemDataForUpdate);
-
-  res.status(200).json("ok");
 
   const itemInClient = ItemDataForUpdate.filter((item) => {
     if (item.SoDetailID !== "") {
@@ -318,9 +316,8 @@ router.post("/updateSalesOrder", (req, res) => {
                 } else {
                   // if the item does not have an ID ( SoDetailID), then we have to insert the new PO item into the db
                   connection.query(
-                    `INSERT INTO sales_db.sales_order_detail (${key.toString()}) VALUES (?)`[
-                      values
-                    ],
+                    `INSERT INTO sales_db.sales_order_detail (${key.toString()}) VALUES (?)`,
+                    [values],
                     (err, results, fields) => {
                       if (err) {
                         return connection.rollback(function () {

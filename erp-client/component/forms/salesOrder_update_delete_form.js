@@ -291,7 +291,7 @@ export default function salesorderUpdateDelete({ salesOrderID }) {
             <Grid item xs={12} mt={1}>
               <TextFieldWrapper
                 fullWidth
-                name={`orderProduct[${index}].remark`}
+                name={`orderProduct[${index}].Remark`}
                 label="Remark"
                 multiline={true}
                 defaultValue=""
@@ -564,7 +564,7 @@ export default function salesorderUpdateDelete({ salesOrderID }) {
                                     QTY: "",
                                     UnitPrice: 0,
                                     product: "",
-                                    remark: "",
+                                    Remark: "",
                                   });
                                 }}>
                                 Add Item
