@@ -24,14 +24,13 @@ import Router from "next/router";
 import RingLoader from "react-spinners/RingLoader";
 import Swal from "sweetalert2";
 import {
+  create_salesOrder,
   get_sales_order_detail,
   delete_sales_order,
   update_sales_order,
 } from "../../util/api_call/salesOrder_api_call";
 
-import DeliveryCreation from "./delivery_create_form";
-
-export default function salesorderUpdateDelete({ salesOrderID }) {
+export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
   const validationSchema = yup.object().shape({
     Company_name_ch: yup.string().required("required!"),
     CustomerOrderNumber: yup.string().required("required"),
@@ -82,8 +81,6 @@ export default function salesorderUpdateDelete({ salesOrderID }) {
   const [deliveryPage, setDeliveryPage] = useState(false);
   const [spiner, setSpiner] = useState(false);
 
-  let deliveryButtonClicked = false;
-
   useEffect(async () => {
     const result = await get_productList();
     if (result.data) {
@@ -99,7 +96,7 @@ export default function salesorderUpdateDelete({ salesOrderID }) {
       setSalesOrderDetail(result.data);
       checkIfAnyDelivery(result.data.orderProduct);
     }
-  }, [deliveryPage]);
+  }, []);
 
   const calculateTotalCost = (values, index) => {
     if (values) {
@@ -239,57 +236,33 @@ export default function salesorderUpdateDelete({ salesOrderID }) {
               />
             </Grid>
             <Grid item xs={2}>
-              <DatePicker
+              <TextFieldWrapper
                 required
                 fullWidth
-                name={`orderProduct[${index}].ETD`}
-                label="Est delivery date"
-                disabled={values.DeliveryQTY == 0 ? false : true}
+                type="number"
+                name={`orderProduct[${index}].AvailableQTY`}
+                label="Available QTY"
               />
             </Grid>
-            <Grid item xs={12}>
-              <Grid container spacing={1} mt={0.1}>
-                <Grid item xs={2}>
-                  <TextFieldWrapper
-                    required
-                    fullWidth
-                    type="number"
-                    name={`orderProduct[${index}].QTY`}
-                    label="Order QTY"
-                  />
-                </Grid>
 
-                <Grid item xs={2}>
-                  <TextFieldWrapper
-                    disabled
-                    fullWidth
-                    type="number"
-                    name={`orderProduct[${index}].DeliveryQTY`}
-                    label="Delivery QTY"
-                  />
-                </Grid>
+            <Grid item xs={2}>
+              <TextFieldWrapper
+                required
+                fullWidth
+                type="number"
+                name={`orderProduct[${index}].QTY`}
+                label="Order QTY"
+              />
+            </Grid>
 
-                <Grid item xs={2}>
-                  <TextFieldWrapper
-                    required
-                    fullWidth
-                    name={`orderProduct[${index}].UnitPrice`}
-                    label="Unit Price"
-                    type="number"
-                    disabled={values.DeliveryQTY == 0 ? false : true}
-                  />
-                </Grid>
-                <Grid item xs={2}>
-                  <TextField
-                    fullWidth
-                    name={`orderProduct[${index}].totalPrice`}
-                    label="Total Price"
-                    value={calculateTotalCost(values, index)}
-                    type="number"
-                    inputProps={{ readOnly: true, shrink: true }}
-                  />
-                </Grid>
-              </Grid>
+            <Grid item xs={2}>
+              <TextFieldWrapper
+                required
+                fullWidth
+                type="number"
+                name={`orderProduct[${index}].DeliveryQTY`}
+                label="Delivery QTY"
+              />
             </Grid>
 
             <Grid item xs={12} mt={1}>
@@ -299,7 +272,7 @@ export default function salesorderUpdateDelete({ salesOrderID }) {
                 label="Remark"
                 multiline={true}
                 defaultValue=""
-                rows={2}
+                rows={1}
               />
             </Grid>
           </Grid>
@@ -328,44 +301,6 @@ export default function salesorderUpdateDelete({ salesOrderID }) {
     );
   };
 
-  const updateChanges = async (values) => {
-    try {
-      const result = await update_sales_order(values);
-      setSpiner(false);
-      if (result.status >= 200 || result.status <= 299) {
-        Swal.fire({
-          title: `SUCCESS`,
-          text: `SALES ORDER# : ${result.data.data}`,
-          icon: "success",
-          showConfirmButton: true,
-        }).then((result) => {
-          if (result.isConfirmed) {
-            // Router.reload(window.location.pathname);
-          }
-        });
-      }
-    } catch (err) {
-      setSpiner(false);
-      Swal.fire({
-        title: `SOMETHING WENT WRONG `,
-        text: err,
-        icon: "error",
-        showConfirmButton: true,
-      });
-    }
-  };
-
-  // *****************************delivery button clicked***********************************************
-
-  if (deliveryPage) {
-    return (
-      <DeliveryCreation
-        salesOrderID={salesOrderID}
-        CloseDeliveryPage={setDeliveryPage}
-      />
-    );
-  }
-
   // **********************************customer form***************************************************
   return (
     <>
@@ -375,30 +310,43 @@ export default function salesorderUpdateDelete({ salesOrderID }) {
           ...salesOrderDetail,
         }}
         validationSchema={validationSchema}
-        onSubmit={(values) => {
-          checkSoComplete(values);
+        onSubmit={async (values) => {
+          setSpiner(true);
 
-          Swal.fire({
-            title: `Save order changes`,
-            showCancelButton: true,
-            showConfirmButton: true,
-          }).then(async (result) => {
-            if (result.isConfirmed) {
-              await updateChanges(values);
+          checkSoComplete(values);
+          try {
+            const result = await update_sales_order(values);
+            setSpiner(false);
+            if (result.status >= 200 || result.status <= 299) {
+              Swal.fire({
+                title: `SUCCESS`,
+                text: `SALES ORDER# : ${result.data.data}`,
+                icon: "success",
+                showConfirmButton: true,
+              }).then((result) => {
+                if (result.isConfirmed) {
+                  // Router.reload(window.location.pathname);
+                }
+              });
             }
-            if (deliveryButtonClicked) {
-              setDeliveryPage(true);
-            }
-          });
+          } catch (err) {
+            setSpiner(false);
+            Swal.fire({
+              title: `SOMETHING WENT WRONG `,
+              text: err,
+              icon: "error",
+              showConfirmButton: true,
+            });
+          }
         }}>
         {({ values, ...others }) => {
-          console.log(others);
+          console.log(values);
           return (
             <Form>
               <Container>
                 <Grid container spacing={3}>
                   <Grid item xs={12} align="center">
-                    <Typography variant="h6">Sales Order Creation</Typography>
+                    <Typography variant="h6">Delivery Creation</Typography>
                   </Grid>
 
                   <Grid container spacing={1.5} mt={0.5}>
@@ -435,85 +383,22 @@ export default function salesorderUpdateDelete({ salesOrderID }) {
                       />
                     </Grid>
                     <Grid item xs={2}>
-                      <TextFieldWrapper
-                        fullWidth
-                        name="ReferenceNumber"
-                        label="Reference Number"
-                      />
-                    </Grid>
-
-                    <Grid item xs={2}>
                       <DatePicker
                         fullWidth
-                        name="SalesOrderDate"
-                        label="Order Date"
+                        name="CreateDate"
+                        label="Create Date"
                       />
                     </Grid>
                     <Grid item xs={2}>
-                      <Selector
-                        fullWidth
+                      <DatePicker
                         required
-                        name="Currency"
-                        label="Currency"
-                        defaultValue=""
-                        options={["", "USD", "TWD", "RMB"]}
+                        fullWidth
+                        name="ShipDate"
+                        label="Ship Date"
+                        disabled={values.DeliveryQTY == 0 ? false : true}
                       />
                     </Grid>
 
-                    <Grid item xs={2}>
-                      <TextFieldWrapper
-                        fullWidth
-                        required
-                        name="Incoterms"
-                        label="Incoterms"
-                      />
-                    </Grid>
-
-                    <Grid item xs={2}>
-                      <TextFieldWrapper
-                        fullWidth
-                        name="Tel"
-                        label="Tel"
-                        disabled
-                      />
-                    </Grid>
-
-                    <Grid item xs={2}>
-                      <TextFieldWrapper
-                        fullWidth
-                        name="Fax"
-                        label="Fax"
-                        disabled
-                      />
-                    </Grid>
-
-                    <Grid item xs={2}>
-                      <TextFieldWrapper
-                        fullWidth
-                        name="ContactPerson"
-                        label="Contact Person"
-                        disabled
-                      />
-                    </Grid>
-                    <Grid item xs={2}>
-                      <TextFieldWrapper
-                        fullWidth
-                        name="Email"
-                        label="Email"
-                        disabled
-                      />
-                    </Grid>
-
-                    <Grid item xs={10} sx={{ width: "100%" }}>
-                      <TextFieldWrapper
-                        fullWidth
-                        name="BillingAddress"
-                        label="Billing Address"
-                      />
-                    </Grid>
-                    <Grid item xs={2}>
-                      <TextFieldWrapper name="BillingZip" label="Zip Code" />
-                    </Grid>
                     <Grid item xs={10} sx={{ width: "100%" }}>
                       <TextFieldWrapper
                         fullWidth
@@ -532,7 +417,7 @@ export default function salesorderUpdateDelete({ salesOrderID }) {
                         label="Remark"
                         multiline={true}
                         defaultValue=""
-                        rows={2}
+                        rows={1}
                       />
                     </Grid>
                   </Grid>
@@ -554,19 +439,6 @@ export default function salesorderUpdateDelete({ salesOrderID }) {
                             justifyContent="center"
                             mt={2}
                             spacing={2}>
-                            <Grid item>
-                              {isSoDeletable ? (
-                                <Button
-                                  variant="contained"
-                                  size="large"
-                                  sx={{ color: "red" }}
-                                  onClick={handleDelete}>
-                                  <DeleteIcon />
-                                </Button>
-                              ) : (
-                                ""
-                              )}
-                            </Grid>
                             {values.orderProduct.length > 0 ? (
                               <>
                                 <Grid item>
@@ -574,46 +446,21 @@ export default function salesorderUpdateDelete({ salesOrderID }) {
                                     variant="contained"
                                     size="large"
                                     sx={{ color: "red" }}>
-                                    update
+                                    Create delivery
                                   </SubmitButtom>
                                 </Grid>
-
                                 <Grid item>
                                   <Button
                                     variant="contained"
                                     size="large"
-                                    sx={{ color: "red" }}
                                     onClick={() => {
-                                      deliveryButtonClicked = true;
-                                      others.handleSubmit();
+                                      CloseDeliveryPage(false);
                                     }}>
-                                    create delivery
+                                    close
                                   </Button>
                                 </Grid>
                               </>
                             ) : null}
-                            <Grid item>
-                              <Button
-                                primary
-                                variant="contained"
-                                size="large"
-                                sx={{}}
-                                onClick={() => {
-                                  arrayHelper.push({
-                                    SoDetailID: "",
-                                    BurnOption: { value: "" },
-                                    DeliveryQTY: 0,
-                                    DeliveryStatus: "open",
-                                    ETD: "",
-                                    QTY: "",
-                                    UnitPrice: 0,
-                                    product: "",
-                                    Remark: "",
-                                  });
-                                }}>
-                                Add Item
-                              </Button>
-                            </Grid>
                           </Grid>
                         </>
                       );

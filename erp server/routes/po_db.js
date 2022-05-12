@@ -41,7 +41,7 @@ router.post("/createPo", (req, res) => {
             product.BurnOption.value,
             product.ETD,
             product.Packaging.value,
-            product.product.ID,
+            product.product.ProductID,
             product.QTY,
             product.UnitCost,
             product.customer.ID,
@@ -82,7 +82,7 @@ router.post("/createPo", (req, res) => {
 });
 
 router.get("/getListOpenPo", (req, res) => {
-  const sqlStr = `SELECT p.poID as "id" , DATE_FORMAT(p.poDate, "%Y.%M.%d" ) as "Po Date",p.VendorId as "Vendor ID", s.Company_name_ch as "Company Name", p.Remark,sum(pd.QTY * pd.UnitCost) as "Total cost" , p.Status as Status
+  const sqlStr = `SELECT p.poID as "id" , DATE_FORMAT(p.poDate, "%Y-%M-%d" ) as "Po Date",p.VendorId as "Vendor ID", s.Company_name_ch as "Company Name", p.Remark,sum(pd.QTY * pd.UnitCost) as "Total cost" , p.Status as Status
   FROM po_db.po AS p 
   left join master_db.supplier as s on  p.vendorId = s.ID
   left join po_db.po_detail as pd on p.poID= pd.poID 
@@ -105,12 +105,12 @@ router.post("/getpo", async (req, res) => {
     JOIN (SELECT * FROM po_db.po as P WHERE P.poID =${param.poID}) As po 
     WHERE supplierDetail.ID = po.VendorID`;
 
-  const sqlStrPoDetail = `SELECT podetail.ID as PoItemIndex, JSON_OBJECT("PartNumber", pro.PartNumber , "ID", pro.ID, "description", pro.description, "VendorNumber", pro.VendorNumber, "Cost", pro.Cost, "Price", pro.Price, "Remark", pro.Remark, "ReceiveStatus",podetail.ReceiveStatus) as product , 
+  const sqlStrPoDetail = `SELECT podetail.ID as PoItemIndex, JSON_OBJECT("PartNumber", pro.PartNumber , "ID", pro.ProductID, "description", pro.description, "VendorNumber", pro.VendorNumber, "Cost", pro.Cost, "Price", pro.Price, "Remark", pro.Remark, "ReceiveStatus",podetail.ReceiveStatus) as product , 
                           JSON_OBJECT("ID", customer.CustomerID, "Company_name_ch",  COALESCE(customer.Company_name_ch,"")) as customer,
                           JSON_OBJECT("value",COALESCE(podetail.Application,"")) as Application,JSON_OBJECT("value",podetail.BurnOption) as BurnOption, DATE_FORMAT(ETD,"%Y-%m-%d") as ETD, JSON_OBJECT("value",podetail.Packaging) as Packaging, QTY, podetail.UnitCost  , podetail.Remark,
                           cast(IFNULL(SUM(RD.ReceiveQTY),0) as double) as "ReceivedQTY" , podetail.ReceiveStatus
 	                        FROM master_db.product as pro 
-                          JOIN (SELECT * FROM po_db.po_detail AS pd where pd.poID = ${param.poID} ) as podetail ON pro.ID = podetail.ProductID
+                          JOIN (SELECT * FROM po_db.po_detail AS pd where pd.poID = ${param.poID} ) as podetail ON pro.ProductID = podetail.ProductID
                           LEFT JOIN (SELECT * FROM master_db.customer ) as customer ON customer.CustomerID = podetail.CustomerID
                           LEFT JOIN (SELECT * FROM po_db.receiving_document  as receiveDocument WHERE receiveDocument.PoNumber = ${param.poID}) as RD ON RD.PoItemIndex = podetail.ID
                           GROUP BY (poDetail.ID)`;

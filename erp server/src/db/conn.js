@@ -5,6 +5,7 @@ const connection = db.createPool({
   host: process.env.HOST,
   user: process.env.USER,
   password: process.env.PASSWORD,
+  multipleStatements: true,
   // database: process.env.DATABASE,
 });
 

@@ -44,7 +44,7 @@ const Sidebar = () => {
   const handleClick = () => {};
 
   const list = () => (
-    <Box sx={{ width: "15vw" }} role="presentation">
+    <Box role="presentation">
       <ListItemButton>
         <ListItemIcon>
           <Cottage />
@@ -208,7 +208,7 @@ const Sidebar = () => {
         <ListItemIcon>
           <MonetizationOn />
         </ListItemIcon>
-        <ListItemText primary="SALES ORDER" />
+        <ListItemText primary="SALES PROCESSING" />
         {titleOpen.salesOrder ? <ExpandLess /> : <ExpandMore />}
       </ListItemButton>
       <Collapse in={titleOpen.salesOrder} timeout="auto" unmountOnExit>
@@ -236,11 +236,11 @@ const Sidebar = () => {
             </Link>
           </ListItemButton>
           <ListItemButton sx={{ pl: 12 }} onClick={() => setState(false)}>
-            <Link href="/master_data/supplier_master">
+            <Link href="/sales/salesOrder_list">
               <ListItemText
                 primary={
                   <Typography sx={{ fontSize: "0.8rem", color: "blue" }}>
-                    SALES PICK&PACK
+                    DELIVERY LIST
                   </Typography>
                 }
               />
@@ -251,7 +251,18 @@ const Sidebar = () => {
               <ListItemText
                 primary={
                   <Typography sx={{ fontSize: "0.8rem", color: "blue" }}>
-                    SALES SHIPPING
+                    PICK & PACK
+                  </Typography>
+                }
+              />
+            </Link>
+          </ListItemButton>
+          <ListItemButton sx={{ pl: 12 }} onClick={() => setState(false)}>
+            <Link href="/master_data/supplier_master">
+              <ListItemText
+                primary={
+                  <Typography sx={{ fontSize: "0.8rem", color: "blue" }}>
+                    SHIPPING
                   </Typography>
                 }
               />

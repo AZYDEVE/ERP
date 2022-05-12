@@ -90,7 +90,7 @@ router.get("/getOpenSalesList", (req, res) => {
     So.CustomerID,
     Customer.Company_name_ch,
     SO.CustomerOrderNumber,
-    SO.SalesOrderDate,
+    DATE_FORMAT(SO.SalesOrderDate, "%Y-%M-%d") AS SalesOrderDate,
     SO.Status
 FROM
     sales_db.sales_order SO

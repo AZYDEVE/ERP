@@ -102,4 +102,92 @@ router.post("/insertTransaction", (req, res) => {
     });
   });
 });
+
+router.get("/getAllStockAvailability", (req, res) => {
+  const sqlStr = `SET @SNAPSHOTTIME := (SELECT TimeStamp FROM inventory_db.inventory_snapshot  LIMIT 1);
+
+  SELECT 
+      product.ProductID, product.PartNumber, coalesce( SUM(QTY), 0 ) as AvailableQTY
+  FROM
+    (SELECT ProductID, PartNumber  FROM master_db.product product) as product
+      LEFT JOIN
+      (SELECT 
+          ProductID, QTY
+      FROM
+          inventory_db.inventory_snapshot UNION SELECT 
+          ProductID, QTY
+      FROM
+          inventory_db.inventory_transaction
+      WHERE
+          TimeStamp > @SNAPSHOTTIME UNION SELECT 
+          ProductID, ReceiveQTY AS QTY
+      FROM
+          po_db.receiving_document
+      WHERE
+          Timestamp > @SNAPSHOTTIME UNION SELECT 
+          ProductID, PickQTY * - 1 AS QTY
+      FROM
+          sales_db.pick_pack
+      WHERE
+          ShipDateTime > @SNAPSHOTTIME
+              AND Status = 'shipped' UNION SELECT 
+          ProductID, DeliveryQTY * - 1 AS QTY
+      FROM
+          sales_db.delivery_detail
+      WHERE
+          Status = 'open') AS agg ON product.ProductID = agg.ProductID
+  GROUP BY ProductID;`;
+
+  db.query(sqlStr, (err, results, fields) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send("something went wrong");
+    }
+    res.status(200).json(results);
+  });
+});
+
+router.post("/getTheStockAvailability", (req, res) => {
+  const param = req.body.productIDs.join();
+
+  const sqlStr = `SET @SNAPSHOTTIME := (SELECT TimeStamp FROM inventory_db.inventory_snapshot  LIMIT 1);
+
+  SELECT  product.ProductID, product.PartNumber, coalesce( SUM(QTY), 0 ) as AvailableQTY FROM
+       (SELECT ProductID, PartNumber  FROM master_db.product product WHERE ProductID IN (${param})) as product
+      LEFT JOIN
+      (SELECT 
+          ProductID, QTY
+      FROM
+          inventory_db.inventory_snapshot WHERE ProductID in (${param}) UNION SELECT 
+          ProductID, QTY
+      FROM
+          inventory_db.inventory_transaction 
+      WHERE
+          TimeStamp > @SNAPSHOTTIME AND ProductID in (${param}) UNION SELECT 
+          ProductID, ReceiveQTY AS QTY
+      FROM
+          po_db.receiving_document
+      WHERE
+          Timestamp > @SNAPSHOTTIME AND ProductID in (${param}) UNION SELECT 
+          ProductID, PickQTY * - 1 AS QTY
+      FROM
+          sales_db.pick_pack
+      WHERE
+          ShipDateTime > @SNAPSHOTTIME
+              AND Status = 'shipped' AND ProductID in (${param}) UNION SELECT 
+          ProductID, DeliveryQTY * - 1 AS QTY
+      FROM
+          sales_db.delivery_detail
+      WHERE
+          Status = 'open' AND ProductID in (${param})) AS agg ON product.ProductID = agg.ProductID
+  GROUP BY ProductID;`;
+
+  db.query(sqlStr, (err, results, fields) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send("something went wrong");
+    }
+    res.status(200).json(results);
+  });
+});
 module.exports = router;
