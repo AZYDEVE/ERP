@@ -10,6 +10,7 @@ const po_routes = require("../routes/po_db");
 const receiving_routes = require("../routes/receiving_db");
 const inventory = require("../routes/inventory_db");
 const salesOrder = require("../routes/salesOrder_db");
+const delivery = require("../routes/delivery_db");
 const app = express();
 
 const cors = require("cors");
@@ -28,5 +29,6 @@ app.use("/receive", receiving_routes);
 app.use("/po", po_routes);
 app.use("/inventory", inventory);
 app.use("/salesOrder", salesOrder);
+app.use("/delivery", delivery);
 
 module.exports = app;

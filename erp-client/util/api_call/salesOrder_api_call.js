@@ -63,3 +63,17 @@ export const update_sales_order = async (salesOrder) => {
     throw new Error(err);
   }
 };
+
+export const get_available_stock_for_salesorder = async (salesOrderID) => {
+  try {
+    const result = await axios.post(
+      process.env.NEXT_PUBLIC_SERVER_HOST +
+        "/salesOrder/getSalesOrderAvaibility",
+      salesOrderID
+    );
+
+    return result;
+  } catch (err) {
+    throw new Error(err);
+  }
+};

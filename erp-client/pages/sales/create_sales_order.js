@@ -56,7 +56,6 @@ export default function CreatePo() {
         product: yup
           .object()
           .shape({
-            ID: yup.number().required("required"),
             PartNumber: yup.string().required("required"),
           })
           .required("required"),

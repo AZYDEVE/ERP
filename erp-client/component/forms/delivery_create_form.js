@@ -8,34 +8,31 @@ import {
   Box,
   Backdrop,
 } from "@mui/material";
-import DeleteIcon from "@mui/icons-material/Delete";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import { get_productList } from "../../util/api_call/product_api_call";
 import TextFieldWrapper from "../../component/forms/formComponent/field";
 import DatePicker from "../../component/forms/formComponent/datePicker";
-import Selector from "../../component/forms/formComponent/select";
 import SubmitButtom from "../../component/forms/formComponent/submitButton";
 import { FieldArray, Form, Formik } from "formik";
 import * as yup from "yup";
 import moment from "moment";
-import CustomAutocomplete from "../../component/forms/formComponent/autoComplete";
-
 import Router from "next/router";
 import RingLoader from "react-spinners/RingLoader";
 import Swal from "sweetalert2";
 import {
-  create_salesOrder,
+  get_available_stock_for_salesorder,
   get_sales_order_detail,
   delete_sales_order,
   update_sales_order,
 } from "../../util/api_call/salesOrder_api_call";
+
+import { get_Sales_OrderDetail_For_CreateDelivery } from "../../util/api_call/delivery_api_call";
 
 export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
   const validationSchema = yup.object().shape({
     Company_name_ch: yup.string().required("required!"),
     CustomerOrderNumber: yup.string().required("required"),
     Incoterms: yup.string().required("required"),
-    BillingAddress: yup.string().required("required!"),
     DeliveryAddress: yup.string().required("required!"),
     CustomerID: yup.number().required("required!"),
     Currency: yup.string().required("required!"),
@@ -76,34 +73,31 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
   });
 
   const [salesOrderDetail, setSalesOrderDetail] = useState(null);
-  const [productList, setProductList] = useState(null);
+  const [availbleProductList, setAvailableProductList] = useState(null);
   const [isSoDeletable, setSoDeletable] = useState(true);
   const [deliveryPage, setDeliveryPage] = useState(false);
   const [spiner, setSpiner] = useState(false);
 
   useEffect(async () => {
-    const result = await get_productList();
+    const result = await get_available_stock_for_salesorder(salesOrderID);
     if (result.data) {
-      setProductList(result.data);
+      console.log(result.data);
+      const availablility = {};
+      result.data.map((item, index) => {
+        availablility[item.ProductID] = item;
+      });
+      setAvailableProductList(availablility);
     }
   }, []);
 
   useEffect(async () => {
-    const result = await get_sales_order_detail(salesOrderID);
+    const result = await get_Sales_OrderDetail_For_CreateDelivery(salesOrderID);
 
     if (result.data) {
-      console.log(result);
       setSalesOrderDetail(result.data);
       checkIfAnyDelivery(result.data.orderProduct);
     }
   }, []);
-
-  const calculateTotalCost = (values, index) => {
-    if (values) {
-      return values.QTY * values.UnitPrice;
-    }
-    return 0;
-  };
 
   const checkIfAnyDelivery = (data) => {
     for (let i = 0; i < data.length; i++) {
@@ -111,33 +105,6 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
         setSoDeletable(false);
         return;
       }
-    }
-  };
-
-  const handleDelete = async () => {
-    try {
-      const result = await delete_sales_order(salesOrderID);
-      setSpiner(false);
-      if (result.status >= 200 || result.status <= 299) {
-        Swal.fire({
-          title: `SUCCESS`,
-          text: `SALES ORDER# : ${result.data.message}`,
-          icon: "success",
-          showConfirmButton: true,
-        }).then((result) => {
-          if (result.isConfirmed) {
-            // Router.reload(window.location.pathname);
-          }
-        });
-      }
-    } catch (err) {
-      setSpiner(false);
-      Swal.fire({
-        title: `SOMETHING WENT WRONG `,
-        text: err,
-        icon: "error",
-        showConfirmButton: true,
-      });
     }
   };
 
@@ -155,7 +122,11 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
     }
   };
 
-  if (!productList || !salesOrderDetail) {
+  const prepareInitialValues = () => {
+    return salesOrderDetail;
+  };
+
+  if (!availbleProductList || !salesOrderDetail) {
     return (
       <>
         <h1>Loading</h1>
@@ -207,31 +178,20 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
         <Grid item xs={10.7}>
           <Grid container spacing={1}>
             <Grid item xs={3}>
-              <CustomAutocomplete
+              <TextFieldWrapper
                 required
-                name={`orderProduct[${index}].product`}
-                titlelabel="Part Number"
-                selectionLabel="PartNumber"
-                recordValueField={`orderProduct[${index}].product`}
-                option={productList}
+                name={`orderProduct[${index}].product.PartNumber`}
+                label="Part Number"
                 disabled={values.DeliveryQTY == 0 ? false : true}
               />
             </Grid>
 
             <Grid item xs={3}>
-              <CustomAutocomplete
+              <TextFieldWrapper
                 required
                 fullWidth
-                name={`orderProduct[${index}].BurnOption`}
-                titlelabel="Burn Option"
-                selectionLabel="value"
-                recordValueField={`orderProduct[${index}].BurnOption`}
-                option={[
-                  { value: "None" },
-                  { value: "Coded" },
-                  { value: "Keyed" },
-                  { value: "Coded & Keyed" },
-                ]}
+                name={`orderProduct[${index}].BurnOption.value`}
+                label="Burn Option"
                 disabled={values.DeliveryQTY == 0 ? false : true}
               />
             </Grid>
@@ -240,7 +200,7 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
                 required
                 fullWidth
                 type="number"
-                name={`orderProduct[${index}].AvailableQTY`}
+                name={`availableStock[${values.product.ProductID}].AvailableQTY`}
                 label="Available QTY"
               />
             </Grid>
@@ -250,7 +210,7 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
                 required
                 fullWidth
                 type="number"
-                name={`orderProduct[${index}].QTY`}
+                name={`orderProduct[${index}].OpenQTY`}
                 label="Order QTY"
               />
             </Grid>
@@ -308,6 +268,7 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
         enableReinitialize
         initialValues={{
           ...salesOrderDetail,
+          availableStock: availbleProductList,
         }}
         validationSchema={validationSchema}
         onSubmit={async (values) => {

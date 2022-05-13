@@ -17,7 +17,7 @@ const MyApp = (props) => {
     <>
       <Head>
         <link rel="shortcut icon" href="/images/favicon.ico" />
-        <title>AWSOMETEK</title>
+        <title>AWESOMETEK</title>
       </Head>
       <CacheProvider value={emotionCache}>
         <ThemeProvider theme={Theme}>
