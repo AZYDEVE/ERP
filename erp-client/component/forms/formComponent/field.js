@@ -8,7 +8,6 @@ const TextFieldWrapper = ({ name, ...otherProps }) => {
 
   const configTextField = {
     ...field,
-
     ...otherProps,
     fullWidth: true,
     variant: "outlined",

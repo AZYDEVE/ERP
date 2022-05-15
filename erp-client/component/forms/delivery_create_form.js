@@ -29,49 +29,6 @@ import {
 import { get_Sales_OrderDetail_For_CreateDelivery } from "../../util/api_call/delivery_api_call";
 
 export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
-  const validationSchema = yup.object().shape({
-    Company_name_ch: yup.string().required("required!"),
-    CustomerOrderNumber: yup.string().required("required"),
-    Incoterms: yup.string().required("required"),
-    DeliveryAddress: yup.string().required("required!"),
-    CustomerID: yup.number().required("required!"),
-    Currency: yup.string().required("required!"),
-    SalesOrderDate: yup.string().required("required!"),
-    orderProduct: yup.array().of(
-      yup.object().shape({
-        BurnOption: yup.object().shape({
-          value: yup.string().required("required"),
-        }),
-        ETD: yup.date().required("required"),
-        QTY: yup
-          .number()
-          .moreThan(0, "Must be greater than 0")
-          .required("required")
-          .test(
-            "checkIfSmallerThanDeliveryQTY",
-            "Cannot be less than Delivery QTY",
-            (value, schema) => {
-              const d = schema.from[0].value;
-              if (value < schema.from[0].value.DeliveryQTY) {
-                return false;
-              }
-              return true;
-            }
-          ),
-        UnitPrice: yup
-          .number()
-          .min(0, "cannot be negative")
-          .required("required"),
-        product: yup
-          .object()
-          .shape({
-            PartNumber: yup.string().required("required"),
-          })
-          .required("required"),
-      })
-    ),
-  });
-
   const [salesOrderDetail, setSalesOrderDetail] = useState(null);
   const [availbleProductList, setAvailableProductList] = useState(null);
   const [isSoDeletable, setSoDeletable] = useState(true);
@@ -81,7 +38,6 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
   useEffect(async () => {
     const result = await get_available_stock_for_salesorder(salesOrderID);
     if (result.data) {
-      console.log(result.data);
       const availablility = {};
       result.data.map((item, index) => {
         availablility[item.ProductID] = item;
@@ -122,9 +78,66 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
     }
   };
 
-  const prepareInitialValues = () => {
-    return salesOrderDetail;
+  const createValidationSchama = () => {
+    return yup.object().shape({
+      Company_name_ch: yup.string().required("required!"),
+      CustomerOrderNumber: yup.string().required("required"),
+      DeliveryAddress: yup.string().required("required!"),
+      CustomerID: yup.number().required("required!"),
+      CreateDate: yup.string().required("required!"),
+      ShipDate: yup.string().required("required!"),
+
+      orderProduct: yup.array().of(
+        yup.object().shape({
+          BurnOption: yup.object().shape({
+            value: yup.string().required("required"),
+          }),
+
+          DeliveryQTY: yup
+            .number()
+            .typeError("must enter a number")
+            .test(
+              "validate delivery QTY",
+              "Cannot be more than Open QTY and Available QTY",
+              (value, schema) => {
+                console.log(schema);
+                const openQTY = schema.from[0].value.OpenQTY;
+                const availableQTY =
+                  schema.from[1].value.availableStock[
+                    schema.from[0].value.product.ProductID
+                  ].AvailableQTY;
+
+                if (value > openQTY) {
+                  return schema.createError({
+                    message: "Cannot be more than Open QTY ",
+                  });
+                }
+
+                if (availableQTY < 0) {
+                  return schema.createError({
+                    message: "Cannot deliver more than availableQTY",
+                  });
+                }
+
+                return true;
+              }
+            ),
+          UnitPrice: yup
+            .number()
+            .min(0, "cannot be negative")
+            .required("required"),
+          product: yup
+            .object()
+            .shape({
+              PartNumber: yup.string().required("required"),
+            })
+            .required("required"),
+        })
+      ),
+    });
   };
+
+  const handleDeliveryQTY = (value, formikValues, formikFunctions) => {};
 
   if (!availbleProductList || !salesOrderDetail) {
     return (
@@ -139,6 +152,7 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
     values,
     index,
     formikArrayHelperFunction,
+    formikFunctions,
     formikValues
   ) => {
     return (
@@ -179,49 +193,80 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
           <Grid container spacing={1}>
             <Grid item xs={3}>
               <TextFieldWrapper
-                required
                 name={`orderProduct[${index}].product.PartNumber`}
                 label="Part Number"
-                disabled={values.DeliveryQTY == 0 ? false : true}
+                inputProps={{ readOnly: true }}
               />
             </Grid>
 
             <Grid item xs={3}>
               <TextFieldWrapper
-                required
                 fullWidth
                 name={`orderProduct[${index}].BurnOption.value`}
                 label="Burn Option"
-                disabled={values.DeliveryQTY == 0 ? false : true}
+                inputProps={{ readOnly: true }}
               />
             </Grid>
             <Grid item xs={2}>
               <TextFieldWrapper
-                required
                 fullWidth
                 type="number"
                 name={`availableStock[${values.product.ProductID}].AvailableQTY`}
                 label="Available QTY"
+                inputProps={{ readOnly: true }}
               />
             </Grid>
 
             <Grid item xs={2}>
               <TextFieldWrapper
-                required
                 fullWidth
                 type="number"
                 name={`orderProduct[${index}].OpenQTY`}
-                label="Order QTY"
+                label="Open QTY"
+                inputProps={{ readOnly: true }}
               />
             </Grid>
 
             <Grid item xs={2}>
               <TextFieldWrapper
+                disabled={
+                  formikValues.availableStock[values.product.ProductID]
+                    .AvailableQTY == 0 && values.DeliveryQTY == 0
+                    ? true
+                    : false
+                }
                 required
                 fullWidth
                 type="number"
                 name={`orderProduct[${index}].DeliveryQTY`}
                 label="Delivery QTY"
+                onKeyUp={(event) => {
+                  console.log(event.target.valueAsNumber);
+                  if (event.target.value < 0) {
+                    event.target.value = 0;
+                  }
+                  formikFunctions.setFieldValue(
+                    `orderProduct[${index}].DeliveryQTY`,
+                    event.target.valueAsNumber
+                  );
+                  const SameProduct = formikValues.orderProduct.filter(
+                    (obj) => obj.product.ProductID === values.product.ProductID
+                  );
+
+                  const sum = SameProduct.reduce((pre, cur) => {
+                    return pre + (isNaN(cur.DeliveryQTY) ? 0 : cur.DeliveryQTY);
+                  }, 0);
+
+                  const availableQTY =
+                    formikFunctions.initialValues.availableStock[
+                      values.product.ProductID
+                    ].AvailableQTY - sum;
+
+                  formikFunctions.setFieldValue(
+                    `availableStock[${values.product.ProductID}].AvailableQTY`,
+                    availableQTY
+                  );
+                }}
               />
             </Grid>
 
@@ -237,26 +282,6 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
             </Grid>
           </Grid>
         </Grid>
-        <Grid
-          item
-          xs={0.8}
-          sx={{
-            "& :hover": { color: "red" },
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-          }}>
-          {values.DeliveryQTY == 0 ? (
-            <RemoveCircleOutlineIcon
-              sx={{ fontSize: "2.1rem", cursor: "pointer" }}
-              onClick={() => {
-                formikArrayHelperFunction.remove(index);
-              }}
-            />
-          ) : (
-            ""
-          )}
-        </Grid>
       </Grid>
     );
   };
@@ -270,7 +295,7 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
           ...salesOrderDetail,
           availableStock: availbleProductList,
         }}
-        validationSchema={validationSchema}
+        validationSchema={createValidationSchama()}
         onSubmit={async (values) => {
           setSpiner(true);
 
@@ -300,7 +325,7 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
             });
           }
         }}>
-        {({ values, ...others }) => {
+        {({ values, ...formikFunctions }) => {
           console.log(values);
           return (
             <Form>
@@ -392,6 +417,7 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
                               value,
                               index,
                               arrayHelper,
+                              formikFunctions,
                               values
                             );
                           })}

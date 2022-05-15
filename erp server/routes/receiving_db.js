@@ -33,7 +33,7 @@ router.post("/getOpenPoReceivingDetail", async (req, res) => {
    FROM po_db.po AS po
   LEFT JOIN po_db.po_detail as poDetail ON  PO.poID = poDetail.poID
   LEFT JOIN po_db.receiving_document as receiving_document ON  poDetail.ID = receiving_document.PoItemIndex
-  LEFT JOIN master_db.product as pro ON  poDetail.productID =pro.ID
+  LEFT JOIN master_db.product as pro ON  poDetail.ProductID =pro.ProductID
   LEFT JOIN master_db.supplier as supplier ON supplier.ID = po.vendorID
   WHERE po.poID=${param.poID}
   GROUP BY (poDetail.ID)`;
