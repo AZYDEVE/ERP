@@ -1,10 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const mysql = require("../src/db/conn");
-const db = mysql.connectionPromist;
+const dbp = mysql.connectionPromist;
 
-const checkAvailabilityByItems = (ProductID) => {
-  console.log(ProductID);
+const checkAvailabilityByItems = async (ProductID) => {
   const sqlStr = `
   
   SET @SNAPSHOTTIME := (SELECT TimeStamp FROM inventory_db.inventory_snapshot  LIMIT 1); 
@@ -39,16 +38,18 @@ const checkAvailabilityByItems = (ProductID) => {
           Status = 'open' AND  ProductID IN (${ProductID.toString()}) )  AS agg ON product.ProductID = agg.ProductID
   GROUP BY ProductID;`;
 
-  return new Promise(function (resolve, reject) {
-    db.query(sqlStr, (err, result, fields) => {
-      if (err) {
-        console.log(err);
-        reject(new Error(err.toString()));
-      }
+  return await dbp.query(sqlStr);
 
-      resolve(result);
-    });
-  });
+  //   return new Promise(function (resolve, reject) {
+  //     db.query(sqlStr, (err, result, fields) => {
+  //       if (err) {
+  //         console.log(err);
+  //         reject(new Error(err.toString()));
+  //       }
+
+  //       resolve(result);
+  //     });
+  //   });
 };
 
 module.exports = checkAvailabilityByItems;

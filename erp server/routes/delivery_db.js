@@ -1,7 +1,10 @@
 const express = require("express");
+const parserMarkdown = require("prettier/parser-markdown");
+const { connection } = require("../src/db/conn");
 const router = express.Router();
 const mysql = require("../src/db/conn");
 const db = mysql.connection;
+const dbp = mysql.connectionPromist;
 
 router.post("/getSalesOrderDetailForCreateDelivery", (req, res) => {
   const param = req.body;
@@ -53,149 +56,104 @@ router.post("/getSalesOrderDetailForCreateDelivery", (req, res) => {
     });
 });
 
-router.post("/createDelivery", (req, res) => {
+router.post("/createDelivery", async (req, res) => {
   const param = req.body;
   console.log(param);
   const deliveryProductIDS = param.orderProduct.map((item) => {
     return item.product.ProductID;
   });
-  console.log(deliveryProductIDS);
 
-  db.getConnection(function (err, connection) {
-    connection.beginTransaction(function (err) {
-      if (err) {
-        throw err;
+  const connection = await dbp.getConnection();
+  try {
+    const saleOrderTime = await connection.query(
+      `SELECT TimeStamp FROM sales_db.sales_order WHERE SalesOrderID =${param.SalesOrderID} `
+    );
+
+    if (saleOrderTime[0][0].TimeStamp !== param.TimeStamp) {
+      console.log("err!!!!!!! time");
+      res
+        .status(250)
+        .json({ data: "sales order is updated during delivery creation" });
+      connection.release();
+      return;
+    }
+
+    const availabilityCheck = require("../helper/availabilityCheck");
+    const availableStock = await availabilityCheck(deliveryProductIDS);
+    const availability = {};
+    availableStock[0][1].map((item) => {
+      availability[item.ProductID] = item.AvailableQTY;
+    });
+
+    let isNegative = false;
+    param.orderProduct.map((item) => {
+      console.log(availability[item.product.ProductID]);
+      const qty = availability[item.product.ProductID] - item.DeliveryQTY;
+      console.log(qty);
+      if (qty < 0) {
+        isNegative = true;
       }
+    });
 
-      connection.query(
-        `SELECT TimeStamp FROM sales_db.sales_order WHERE SalesOrderID =${param.SalesOrderID} `,
-        async (err, results, field) => {
-          if (err) {
-            return connection.rollback(function () {
-              connection.release();
-              throw err;
-            });
-          }
+    if (isNegative) {
+      res.status(250).json({
+        data: `deliver more than available`,
+      });
+      console.log("not available");
 
-          if (param.TimeStamp !== results[0].TimeStamp) {
-            res.status(500).json({
-              data: "transaction is denied, Someone made changes to the sales order",
-            });
+      connection.release();
+      return;
+    }
 
-            return connection.rollback(function () {
-              connection.release();
-            });
-          }
+    await connection.beginTransaction();
+    await connection.query(
+      `UPDATE sales_db.sales_order SET Status="partial deliver" WHERE SalesOrderID = ${param.SalesOrderID} `
+    );
 
-          const availabilityCheck = require("../helper/availabilityCheck");
-          const availabilityResult = await availabilityCheck(
-            deliveryProductIDS
-          );
+    const delivery = {
+      SalesOrderID: param.SalesOrderID,
+      CreateDate: param.CreateDate,
+      ShipDate: param.ShipDate,
+      Remark: param.Remark,
+      Status: param.Status,
+    };
 
-          let isNegative = false;
-          console.log(availabilityResult);
-          availabilityResult[1].map((product) => {
-            console.log(product);
-            if (product.AvailableQTY < 0) {
-              isNegative = true;
-            }
-          });
+    const createDelivery = `INSERT INTO sales_db.delivery( ${Object.keys(
+      delivery
+    ).toString()}) VALUES (?)`;
 
-          if (isNegative) {
-            res.status(500).json({ data: `something went wrong` });
-            return connection.rollback(function () {
-              connection.release();
-              throw err;
-            });
-          }
+    const deliveryNumber = await connection.query(createDelivery, [
+      Object.values(delivery),
+    ]);
+    console.log(deliveryNumber[0].insertId);
 
-          connection.query(
-            `UPDATE sales_db.sales_order SET Status="partial deliver" WHERE SalesOrderID = ${param.SalesOrderID} `,
-            (err, results, field) => {
-              if (err) {
-                console.log(err);
-                res.status(500).json({ data: err });
-                return connection.rollback(function () {
-                  connection.release();
-
-                  throw err;
-                });
-              }
-
-              const delivery = {
-                SalesOrderID: param.SalesOrderID,
-                CreateDate: param.CreateDate,
-                ShipDate: param.ShipDate,
-                Remark: param.Remark,
-                Status: param.Status,
-              };
-
-              const createDelivery = `INSERT INTO sales_db.delivery( ${Object.keys(
-                delivery
-              ).toString()}) VALUES (?)`;
-
-              connection.query(
-                createDelivery,
-                [Object.values(delivery)],
-                async (err, deliveryInsertResults, fields) => {
-                  if (err) {
-                    console.log(err);
-                    res.status(500).json({ data: err });
-                    return connection.rollback(function () {
-                      connection.release();
-                      throw err;
-                    });
-                  }
-
-                  console.log(deliveryInsertResults);
-                  param.orderProduct.map((obj, index) => {
-                    const deliveryDetail = {
-                      SoDetailID: obj.SoDetailID,
-                      DeliveryID: deliveryInsertResults.insertId,
-                      ProductID: obj.product.ProductID,
-                      DeliveryQTY: obj.DeliveryQTY,
-                      BurnOption: obj.BurnOption.value,
-                      Remark: obj.Remark,
-                      Status: obj.Status,
-                    };
-                    connection.query(
-                      `INSERT INTO sales_db.delivery_detail (${Object.keys(
-                        deliveryDetail
-                      ).toString()}) VALUES(?)`,
-                      [Object.values(deliveryDetail)],
-                      (err, deliveryDetailInsertResult, field) => {
-                        if (err) {
-                          console.log(err);
-                          res.status(500).json({ data: err });
-                          return connection.rollback(function () {
-                            connection.release();
-                            throw err;
-                          });
-                        }
-                      }
-                    );
-                  });
-
-                  connection.commit(function (err) {
-                    if (err) {
-                      res.status(500).json({ data: err });
-                      return connection.rollback(function () {
-                        connection.release();
-                        throw err;
-                      });
-                    }
-                    res.status(200).json({
-                      data: deliveryInsertResults.insertId,
-                    });
-                  });
-                }
-              );
-            }
-          );
-        }
+    param.orderProduct.map(async (obj, index) => {
+      const deliveryDetail = {
+        SoDetailID: obj.SoDetailID,
+        DeliveryID: deliveryNumber[0].insertId,
+        ProductID: obj.product.ProductID,
+        DeliveryQTY: obj.DeliveryQTY,
+        BurnOption: obj.BurnOption.value,
+        Remark: obj.Remark,
+        Status: obj.Status,
+      };
+      await connection.query(
+        `INSERT INTO sales_db.delivery_detail (${Object.keys(
+          deliveryDetail
+        ).toString()}) VALUES(?)`,
+        [Object.values(deliveryDetail)]
       );
     });
-  });
+    await connection.commit();
+
+    res.status(200).json({ data: deliveryNumber[0].insertId });
+  } catch (err) {
+    console.log("catch");
+    console.log(err);
+    await connection.rollback();
+    connection.release();
+    res.status(500).json({ data: "err" });
+  }
 });
 
 router.get("/listOpenDelivery", (req, res) => {
@@ -283,15 +241,4 @@ WHERE
     });
 });
 
-router.get("/gettest", (req, res) => {
-  const avaCheck = require("../helper/availabilityCheck");
-
-  avaCheck(req.body.ProductID, function (result, err) {
-    if (err) {
-      console.log(err);
-    }
-    console.log(result);
-    res.status(200).json(result);
-  });
-});
 module.exports = router;
