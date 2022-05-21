@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
-const db = require("../src/db/conn");
+const mysql = require("../src/db/conn");
+const db = mysql.connection;
 
 // console.log("the db is:", db);
 router.get("/getConnection_status", (req, res) => {

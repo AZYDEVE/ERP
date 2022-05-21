@@ -230,10 +230,10 @@ export default function salesorderUpdateDelete({ salesOrderID }) {
                 selectionLabel="value"
                 recordValueField={`orderProduct[${index}].BurnOption`}
                 option={[
-                  { value: "None" },
-                  { value: "Coded" },
-                  { value: "Keyed" },
-                  { value: "Coded & Keyed" },
+                  { value: "NONE" },
+                  { value: "CODED" },
+                  { value: "KEYED" },
+                  { value: "CODED & KEYED" },
                 ]}
                 disabled={values.DeliveryQTY == 0 ? false : true}
               />

@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
-const db = require("../src/db/conn");
+const mysql = require("../src/db/conn");
+const db = mysql.connection;
 
 router.get("/supplierList", (req, res) => {
   db.query(`SELECT * FROM master_db.supplier`, (err, result, field) => {

@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
-const db = require("../src/db/conn");
+const mysql = require("../src/db/conn");
+const db = mysql.connection;
 
 router.post("/createSalesOrder", (req, res) => {
   const values = req.body;
@@ -97,7 +98,7 @@ FROM
         JOIN
     master_db.customer Customer ON SO.CustomerID = Customer.CustomerID
 WHERE
-    SO.Status IN ('open' , 'partial')`;
+    SO.Status IN ('open' , 'partial deliver') ORDER BY SO.SalesOrderID`;
 
   db.query(sqlGetOpenSalesList, (err, results, fields) => {
     if (err) {
@@ -360,23 +361,23 @@ router.post("/getSalesOrderAvaibility", (req, res) => {
         (SELECT 
             ProductID, QTY
         FROM
-            inventory_db.inventory_snapshot WHERE FIND_IN_SET(ProductID, @SALES_ORDER_PRODUCTID) UNION SELECT 
+            inventory_db.inventory_snapshot WHERE FIND_IN_SET(ProductID, @SALES_ORDER_PRODUCTID) UNION ALL SELECT 
             ProductID, QTY
         FROM
             inventory_db.inventory_transaction 
         WHERE
-            TimeStamp > @SNAPSHOTTIME AND FIND_IN_SET(ProductID, @SALES_ORDER_PRODUCTID) UNION SELECT 
+            TimeStamp > @SNAPSHOTTIME AND FIND_IN_SET(ProductID, @SALES_ORDER_PRODUCTID) UNION ALL SELECT 
             ProductID, ReceiveQTY AS QTY
         FROM
             po_db.receiving_document
         WHERE
-            Timestamp > @SNAPSHOTTIME AND FIND_IN_SET(ProductID, @SALES_ORDER_PRODUCTID) UNION SELECT 
+            Timestamp > @SNAPSHOTTIME AND FIND_IN_SET(ProductID, @SALES_ORDER_PRODUCTID) UNION ALL SELECT 
             ProductID, PickQTY * - 1 AS QTY
         FROM
             sales_db.pick_pack
         WHERE
             ShipDateTime > @SNAPSHOTTIME
-                AND Status = 'shipped' AND FIND_IN_SET(ProductID, @SALES_ORDER_PRODUCTID) UNION SELECT 
+                AND Status = 'shipped' AND FIND_IN_SET(ProductID, @SALES_ORDER_PRODUCTID) UNION ALL SELECT 
             ProductID, DeliveryQTY * - 1 AS QTY
         FROM
             sales_db.delivery_detail

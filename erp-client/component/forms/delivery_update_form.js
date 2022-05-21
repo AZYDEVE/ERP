@@ -18,10 +18,7 @@ import * as yup from "yup";
 import Router from "next/router";
 import RingLoader from "react-spinners/RingLoader";
 import Swal from "sweetalert2";
-import {
-  get_available_stock_for_salesorder,
-  update_sales_order,
-} from "../../util/api_call/salesOrder_api_call";
+import { get_delivery } from "../../util/api_call/salesOrder_api_call";
 
 import {
   CREATE_DELIVERY,
@@ -29,27 +26,15 @@ import {
 } from "../../util/api_call/delivery_api_call";
 
 export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
-  const [salesOrderDetail, setSalesOrderDetail] = useState(null);
+  const [DeliveryDetail, setDeliveryDetail] = useState(null);
   const [availbleProductList, setAvailableProductList] = useState(null);
   const [spiner, setSpiner] = useState(false);
 
   useEffect(async () => {
-    const result = await get_available_stock_for_salesorder(salesOrderID);
-    if (result.data) {
-      console.log(result.data);
-      const availablility = {};
-      result.data.map((item, index) => {
-        availablility[item.ProductID] = item;
-      });
-      setAvailableProductList(availablility);
-    }
-  }, []);
-
-  useEffect(async () => {
-    const result = await get_Sales_OrderDetail_For_CreateDelivery(salesOrderID);
+    const result = await get_delivery(salesOrderID);
 
     if (result.data) {
-      setSalesOrderDetail(result.data);
+      setDeliveryDetail(result.data);
     }
   }, []);
 
@@ -313,7 +298,7 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
               <Container>
                 <Grid container spacing={3}>
                   <Grid item xs={12} align="center">
-                    <Typography variant="h6">Delivery Creation</Typography>
+                    <Typography variant="h6">Delivery </Typography>
                   </Grid>
 
                   <Grid container spacing={1.5} mt={0.5}>
