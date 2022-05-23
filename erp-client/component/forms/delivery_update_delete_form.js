@@ -9,31 +9,34 @@ import {
   Backdrop,
 } from "@mui/material";
 
-import TextFieldWrapper from "../../component/forms/formComponent/field";
-import DatePicker from "../../component/forms/formComponent/datePicker";
-import SubmitButtom from "../../component/forms/formComponent/submitButton";
+import TextFieldWrapper from "./formComponent/field";
+import DatePicker from "./formComponent/datePicker";
+import SubmitButtom from "./formComponent/submitButton";
 import { FieldArray, Form, Formik } from "formik";
 import * as yup from "yup";
 
 import Router from "next/router";
 import RingLoader from "react-spinners/RingLoader";
 import Swal from "sweetalert2";
-import { get_delivery } from "../../util/api_call/salesOrder_api_call";
 
 import {
-  CREATE_DELIVERY,
-  get_Sales_OrderDetail_For_CreateDelivery,
+  update_delivery,
+  delete_delivery,
+  get_delivery,
+  release_delivery,
 } from "../../util/api_call/delivery_api_call";
+import DeleteIcon from "@mui/icons-material/Delete";
 
-export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
+export default function deliveryUpdateDelete({ DeliveryID }) {
   const [DeliveryDetail, setDeliveryDetail] = useState(null);
   const [availbleProductList, setAvailableProductList] = useState(null);
   const [spiner, setSpiner] = useState(false);
 
   useEffect(async () => {
-    const result = await get_delivery(salesOrderID);
+    const result = await get_delivery(DeliveryID);
 
     if (result.data) {
+      console.log(result.data);
       setDeliveryDetail(result.data);
     }
   }, []);
@@ -48,52 +51,70 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
       ShipDate: yup.string().required("required!"),
       orderProduct: yup.array().of(
         yup.object().shape({
-          BurnOption: yup.object().shape({
-            value: yup.string().required("required"),
-          }),
-          DeliveryQTY: yup
-            .number()
-            .typeError("must enter a number")
-            .test(
-              "validate delivery QTY",
-              "Cannot be more than Open QTY and Available QTY",
-              (value, schema) => {
-                console.log(schema);
-                const openQTY = schema.from[0].value.OpenQTY;
-                const availableQTY =
-                  schema.from[1].value.availableStock[
-                    schema.from[0].value.product.ProductID
-                  ].AvailableQTY;
-
-                if (value > openQTY) {
-                  return schema.createError({
-                    message: "Cannot be more than Open QTY ",
-                  });
-                }
-
-                if (availableQTY < 0) {
-                  return schema.createError({
-                    message: "Cannot deliver more than availableQTY",
-                  });
-                }
-
-                return true;
-              }
-            ),
-          product: yup
-            .object()
-            .shape({
-              PartNumber: yup.string().required("required"),
-            })
-            .required("required"),
+          BurnOption: yup.string().required("required"),
+          DeliveryQTY: yup.number().required("required"),
+          ProductID: yup.number().required("required"),
         })
       ),
     });
   };
 
-  const handleDeliveryQTY = (value, formikValues, formikFunctions) => {};
+  const handleDelete = async () => {
+    try {
+      const result = await delete_delivery(DeliveryID);
+      setSpiner(false);
+      if (result.status >= 200 || result.status <= 299) {
+        Swal.fire({
+          title: ` ${result.data.data}`,
+          showConfirmButton: true,
+        }).then((result) => {
+          if (result.isConfirmed) {
+            Router.reload(window.location.pathname);
+          }
+        });
+      }
+    } catch (err) {
+      setSpiner(false);
+      Swal.fire({
+        title: `SOMETHING WENT WRONG `,
+        text: err,
+        icon: "error",
+        showConfirmButton: true,
+      });
+    }
+  };
 
-  if (!availbleProductList || !salesOrderDetail) {
+  const handleRelease = async () => {
+    try {
+      const result = await release_delivery(DeliveryID);
+      setSpiner(false);
+      if (result.status >= 200 || result.status <= 299) {
+        Swal.fire({
+          title: ` ${result.data.data}`,
+          showConfirmButton: true,
+        }).then((result) => {
+          if (result.isConfirmed) {
+            Router.reload(window.location.pathname);
+          }
+        });
+      } else {
+        Swal.fire({
+          text: ` ${result.data.message}`,
+          showConfirmButton: true,
+        });
+      }
+    } catch (err) {
+      setSpiner(false);
+      Swal.fire({
+        title: `SOMETHING WENT WRONG `,
+        text: err,
+        icon: "error",
+        showConfirmButton: true,
+      });
+    }
+  };
+
+  if (!DeliveryDetail) {
     return (
       <>
         <h1>Loading</h1>
@@ -146,80 +167,29 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
           <Grid container spacing={1}>
             <Grid item xs={3}>
               <TextFieldWrapper
-                name={`orderProduct[${index}].product.PartNumber`}
+                name={`orderProduct[${index}].PartNumber`}
                 label="Part Number"
-                inputProps={{ readOnly: true }}
+                disabled
               />
             </Grid>
 
             <Grid item xs={3}>
               <TextFieldWrapper
                 fullWidth
-                name={`orderProduct[${index}].BurnOption.value`}
+                name={`orderProduct[${index}].BurnOption`}
                 label="Burn Option"
-                inputProps={{ readOnly: true }}
-              />
-            </Grid>
-            <Grid item xs={2}>
-              <TextFieldWrapper
-                fullWidth
-                type="number"
-                name={`availableStock[${values.product.ProductID}].AvailableQTY`}
-                label="Available QTY"
-                inputProps={{ readOnly: true }}
+                disabled
               />
             </Grid>
 
             <Grid item xs={2}>
               <TextFieldWrapper
-                fullWidth
-                type="number"
-                name={`orderProduct[${index}].OpenQTY`}
-                label="Open QTY"
-                inputProps={{ readOnly: true }}
-              />
-            </Grid>
-
-            <Grid item xs={2}>
-              <TextFieldWrapper
-                disabled={
-                  formikValues.availableStock[values.product.ProductID]
-                    .AvailableQTY == 0 && values.DeliveryQTY == 0
-                    ? true
-                    : false
-                }
                 required
                 fullWidth
                 type="number"
                 name={`orderProduct[${index}].DeliveryQTY`}
                 label="Delivery QTY"
-                onKeyUp={(event) => {
-                  console.log(event.target.valueAsNumber);
-                  if (event.target.value < 0) {
-                    event.target.value = 0;
-                  }
-                  formikFunctions.setFieldValue(
-                    `orderProduct[${index}].DeliveryQTY`,
-                    event.target.valueAsNumber
-                  );
-                  const SameProduct = formikValues.orderProduct.filter(
-                    (obj) => obj.product.ProductID === values.product.ProductID
-                  );
-
-                  const sum = SameProduct.reduce((pre, cur) => {
-                    return pre + (isNaN(cur.DeliveryQTY) ? 0 : cur.DeliveryQTY);
-                  }, 0);
-
-                  const availableQTY =
-                    formikFunctions.initialValues.availableStock[
-                      values.product.ProductID
-                    ].AvailableQTY - sum;
-
-                  formikFunctions.setFieldValue(
-                    `availableStock[${values.product.ProductID}].AvailableQTY`,
-                    availableQTY
-                  );
-                }}
+                disabled
               />
             </Grid>
 
@@ -245,50 +215,34 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
       <Formik
         enableReinitialize
         initialValues={{
-          ...salesOrderDetail,
-          availableStock: availbleProductList,
+          ...DeliveryDetail,
         }}
         validationSchema={createValidationSchama()}
         onSubmit={async (values) => {
           // setSpiner(true);
-
-          const submitValues = { ...values };
-
-          submitValues.orderProduct = values.orderProduct.filter(
-            (item) => item.DeliveryQTY > 0
-          );
-
-          if (submitValues.orderProduct.length === 0) {
-            Swal.fire({
-              title: `Nothing In Delivery`,
-              showConfirmButton: true,
-            });
-          } else {
-            console.log("hello");
-            try {
-              const result = await CREATE_DELIVERY(submitValues);
-              setSpiner(false);
-              if (result.status >= 200 || result.status <= 299) {
-                Swal.fire({
-                  title: `SUCCESS`,
-                  text: `DELIVERY# : ${result.data.data}`,
-                  icon: "success",
-                  showConfirmButton: true,
-                }).then((result) => {
-                  if (result.isConfirmed) {
-                    // Router.reload(window.location.pathname);
-                  }
-                });
-              }
-            } catch (err) {
-              setSpiner(false);
+          console.log("submitting");
+          try {
+            const result = await update_delivery(values);
+            setSpiner(false);
+            if (result.status >= 200 || result.status <= 299) {
               Swal.fire({
-                title: `SOMETHING WENT WRONG `,
-                text: err,
-                icon: "error",
+                title: `DELIVERY# : ${result.data.data}`,
+
                 showConfirmButton: true,
+              }).then((result) => {
+                if (result.isConfirmed) {
+                  Router.reload(window.location.pathname);
+                }
               });
             }
+          } catch (err) {
+            setSpiner(false);
+            Swal.fire({
+              title: `SOMETHING WENT WRONG `,
+              text: err,
+              icon: "error",
+              showConfirmButton: true,
+            });
           }
         }}>
         {({ values, ...formikFunctions }) => {
@@ -298,7 +252,9 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
               <Container>
                 <Grid container spacing={3}>
                   <Grid item xs={12} align="center">
-                    <Typography variant="h6">Delivery </Typography>
+                    <Typography variant="h6">
+                      Delivery # {values.DeliveryID}
+                    </Typography>
                   </Grid>
 
                   <Grid container spacing={1.5} mt={0.5}>
@@ -328,6 +284,7 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
                     </Grid>
                     <Grid item xs={2}>
                       <TextFieldWrapper
+                        disabled
                         fullWidth
                         required
                         name="CustomerOrderNumber"
@@ -336,6 +293,7 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
                     </Grid>
                     <Grid item xs={2}>
                       <DatePicker
+                        disabled
                         fullWidth
                         name="CreateDate"
                         label="Create Date"
@@ -352,16 +310,21 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
 
                     <Grid item xs={10} sx={{ width: "100%" }}>
                       <TextFieldWrapper
+                        disabled
                         fullWidth
                         name="DeliveryAddress"
                         label="Delivery Address"
                       />
                     </Grid>
                     <Grid item xs={2}>
-                      <TextFieldWrapper name="DeliveryZip" label="Zip Code" />
+                      <TextFieldWrapper
+                        disabled
+                        name="DeliveryZip"
+                        label="Zip Code"
+                      />
                     </Grid>
 
-                    <Grid item xs={12}>
+                    <Grid item xs={10}>
                       <TextFieldWrapper
                         fullWidth
                         name="Remark"
@@ -369,6 +332,15 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
                         multiline={true}
                         defaultValue=""
                         rows={1}
+                      />
+                    </Grid>
+                    <Grid item xs={2}>
+                      <TextFieldWrapper
+                        fullWidth
+                        name="Status"
+                        label="Status"
+                        rows={1}
+                        inputProps={{ readOnly: true }}
                       />
                     </Grid>
                   </Grid>
@@ -390,27 +362,35 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
                             justifyContent="center"
                             mt={2}
                             spacing={2}>
-                            {values.orderProduct.length > 0 ? (
-                              <>
-                                <Grid item>
-                                  <SubmitButtom
-                                    variant="contained"
-                                    size="large"
-                                    sx={{ color: "red" }}>
-                                    Create delivery
-                                  </SubmitButtom>
-                                </Grid>
-                                <Grid item>
-                                  <Button
-                                    variant="contained"
-                                    size="large"
-                                    onClick={() => {
-                                      CloseDeliveryPage(false);
-                                    }}>
-                                    close
-                                  </Button>
-                                </Grid>
-                              </>
+                            {values.Status == "block" ? (
+                              <Grid item>
+                                <Button
+                                  variant="contained"
+                                  size="large"
+                                  sx={{ color: "red" }}
+                                  onClick={handleDelete}>
+                                  <DeleteIcon />
+                                </Button>
+                              </Grid>
+                            ) : null}
+                            <Grid item>
+                              <SubmitButtom
+                                variant="contained"
+                                size="large"
+                                sx={{ color: "red" }}>
+                                update
+                              </SubmitButtom>
+                            </Grid>
+                            {values.Status == "block" ? (
+                              <Grid item>
+                                <Button
+                                  variant="contained"
+                                  size="large"
+                                  sx={{ color: "red" }}
+                                  onClick={handleRelease}>
+                                  Release
+                                </Button>
+                              </Grid>
                             ) : null}
                           </Grid>
                         </>

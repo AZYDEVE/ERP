@@ -1,3 +1,4 @@
+const { json } = require("express");
 const express = require("express");
 const parserMarkdown = require("prettier/parser-markdown");
 const { connection } = require("../src/db/conn");
@@ -190,11 +191,12 @@ GROUP BY delivery.DeliveryID`;
   });
 });
 
-router.get("/getDelivery", (req, res) => {
+router.post("/getDelivery", (req, res) => {
   const deliveryStr = `
   SELECT 
   DeliveryID,
   delivery.SalesOrderID,
+  SO.CustomerID,
   customer.Company_name_ch,
   SO.CustomerOrderNumber,
   delivery.CreateDate,
@@ -215,10 +217,12 @@ WHERE
 
   const deliveryDetailStr = `
   SELECT 
+  deliveryDetail.DeliveryItemID,
   deliveryDetail.ProductID,
   PartNumber,
   BurnOption,
-  DeliveryQTY
+  DeliveryQTY,
+  DeliveryDetail.Remark
 FROM
   sales_db.delivery_detail deliveryDetail
       JOIN
@@ -239,6 +243,101 @@ WHERE
       console.log(err);
       res.status(500).json(err);
     });
+});
+
+router.post("/deleteDelivery", async (req, res) => {
+  try {
+    const deliveryStatus = await dbp.query(
+      `SELECT Status FROM sales_db.delivery WHERE DeliveryID = ${req.body.DeliveryID}`
+    );
+
+    const connection = await dbp.getConnection();
+    if (deliveryStatus[0][0].Status === "block") {
+      const strDeliveryDetail = `DELETE FROM sales_db.delivery_detail WHERE DeliveryID = ${req.body.DeliveryID}`;
+      const strDelivery = `DELETE FROM sales_db.delivery WHERE DeliveryID = ${req.body.DeliveryID}`;
+
+      try {
+        await connection.beginTransaction();
+        await connection.query(strDeliveryDetail);
+        const result = await connection.query(strDelivery);
+        console.log(result);
+        connection.commit();
+
+        res
+          .status(200)
+          .json({ data: `Deleted delivery # ${req.body.DeliveryID}` });
+      } catch (err) {
+        console.log(err);
+        connection.rollback();
+        connection.release();
+        res.status(500).json({ data: err });
+      }
+    } else {
+      res
+        .status(250)
+        .json({ data: `Cannot delete, Only block delivery can be deleted` });
+    }
+  } catch (err) {
+    res.status(500).json({ data: err });
+  }
+});
+
+router.post("/releaseDelivery", async (req, res) => {
+  try {
+    const deliveryStatus = await dbp.query(
+      `SELECT Status FROM sales_db.delivery WHERE DeliveryID = ${req.body.DeliveryID}`
+    );
+    if (deliveryStatus[0][0].Status === "block") {
+      const result = await dbp.query(
+        `UPDATE sales_db.delivery SET Status = 'released' WHERE DeliveryID = ${req.body.DeliveryID}`
+      );
+      console.log(result);
+      res.status(200).json({
+        data: `Delivery# ${req.body.DeliveryID} is released for pick and pack`,
+      });
+    } else {
+      res.status(250).json({
+        data: `Delivery# ${req.body.DeliveryID} is already released`,
+      });
+    }
+  } catch (err) {
+    res.status(500).json({ data: err });
+  }
+});
+
+router.post("/updateDelivery", async (req, res) => {
+  try {
+    const connection = await dbp.getConnection();
+
+    try {
+      await connection.beginTransaction();
+      await connection.query(
+        `UPDATE sales_db.delivery SET ShipDate = '${
+          req.body.ShipDate
+        }', Remark = '${
+          req.body.Remark == "" ? null : req.body.Remark
+        }' WHERE DeliveryID = ${req.body.DeliveryID}`
+      );
+
+      req.body.orderProduct.map(async (item) => {
+        console.log(item);
+        await connection.query(
+          `UPDATE sales_db.delivery_detail SET Remark = '${
+            item.Remark === "" ? null : item.Remark
+          }'  WHERE DeliveryItemID = ${item.DeliveryItemID} `
+        );
+      });
+      connection.commit();
+      res.status(200).json({ data: `Updated Successfully` });
+    } catch (err) {
+      connection.rollback();
+      connection.release();
+      console.log(err);
+      res.status(500).json({ data: err });
+    }
+  } catch (err) {
+    res.status(500).json({ data: err });
+  }
 });
 
 module.exports = router;

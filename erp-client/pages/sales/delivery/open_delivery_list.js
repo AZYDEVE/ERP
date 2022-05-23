@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Grid, Backdrop, Typography, Box, Modal } from "@mui/material";
 import Swal from "sweetalert2";
 import { get_list_open_deliveries } from "../../../util/api_call/delivery_api_call";
-import { width } from "@mui/system";
+import DeliveryUpdateDelete from "../../../component/forms/delivery_update_delete_form";
 
 const SOlist = () => {
   const [DeliveryList, setDeliveryList] = useState("");
@@ -121,9 +121,7 @@ const SOlist = () => {
             onRowClick={(event, index) => {
               console.log(event.row.id);
               setModalIsOpen(true);
-              setSelectedDelivery({
-                DeliveryID: event.row.id,
-              });
+              setSelectedDelivery({ DeliveryID: event.row.id });
               console.log(event);
             }}
           />
@@ -148,7 +146,7 @@ const SOlist = () => {
             p: 4,
             overflow: "scroll",
           }}>
-          {/* <SalesOrderUpdateDelete salesOrderID={selectedDelivery} /> */}
+          <DeliveryUpdateDelete DeliveryID={selectedDelivery} />
         </Box>
       </Modal>
     </Grid>
