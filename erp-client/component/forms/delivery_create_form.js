@@ -27,6 +27,7 @@ import {
   CREATE_DELIVERY,
   get_Sales_OrderDetail_For_CreateDelivery,
 } from "../../util/api_call/delivery_api_call";
+import CustomSelect from "./formComponent/select";
 
 export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
   const [salesOrderDetail, setSalesOrderDetail] = useState(null);
@@ -66,6 +67,8 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
           BurnOption: yup.object().shape({
             value: yup.string().required("required"),
           }),
+          CodeVersion: yup.string().required("required"),
+          Marked: yup.string().required("required"),
           DeliveryQTY: yup
             .number()
             .typeError("must enter a number")
@@ -158,8 +161,8 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
           </Box>
         </Grid>
         <Grid item xs={10.7}>
-          <Grid container spacing={1}>
-            <Grid item xs={3}>
+          <Grid container spacing={2}>
+            <Grid item xs={4}>
               <TextFieldWrapper
                 name={`orderProduct[${index}].product.PartNumber`}
                 label="Part Number"
@@ -167,7 +170,7 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
               />
             </Grid>
 
-            <Grid item xs={3}>
+            <Grid item xs={2}>
               <TextFieldWrapper
                 fullWidth
                 name={`orderProduct[${index}].BurnOption.value`}
@@ -175,6 +178,22 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
                 inputProps={{ readOnly: true }}
               />
             </Grid>
+            <Grid item xs={4}>
+              <TextFieldWrapper
+                fullWidth
+                name={`orderProduct[${index}].CodeVersion`}
+                label="CodeVersion"
+              />
+            </Grid>
+            <Grid item xs={2}>
+              <CustomSelect
+                fullWidth
+                name={`orderProduct[${index}].Marked`}
+                label="Marked"
+                options={["No", "Yes"]}
+              />
+            </Grid>
+
             <Grid item xs={2}>
               <TextFieldWrapper
                 fullWidth

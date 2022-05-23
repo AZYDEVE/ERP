@@ -26,6 +26,7 @@ import {
   release_delivery,
 } from "../../util/api_call/delivery_api_call";
 import DeleteIcon from "@mui/icons-material/Delete";
+import CustomSelect from "./formComponent/select";
 
 export default function deliveryUpdateDelete({ DeliveryID }) {
   const [DeliveryDetail, setDeliveryDetail] = useState(null);
@@ -173,12 +174,27 @@ export default function deliveryUpdateDelete({ DeliveryID }) {
               />
             </Grid>
 
-            <Grid item xs={3}>
+            <Grid item xs={2}>
               <TextFieldWrapper
                 fullWidth
                 name={`orderProduct[${index}].BurnOption`}
                 label="Burn Option"
                 disabled
+              />
+            </Grid>
+            <Grid item xs={3}>
+              <TextFieldWrapper
+                fullWidth
+                name={`orderProduct[${index}].CodeVersion`}
+                label="Code Version"
+              />
+            </Grid>
+            <Grid item xs={2}>
+              <CustomSelect
+                fullWidth
+                name={`orderProduct[${index}].Marked`}
+                label="Marked"
+                options={["No", "Yes"]}
               />
             </Grid>
 

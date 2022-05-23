@@ -92,10 +92,11 @@ export default function InventoryTransferConversion({ itemInfo }) {
           }
         }}>
         {({ values, ...others }) => {
+          console.log(others);
           return (
             <>
               <Form>
-                <Container>
+                <Container disableGutters>
                   <Grid container>
                     <Grid item xs={12}>
                       <Typography variant="h5" align="center">
@@ -107,6 +108,15 @@ export default function InventoryTransferConversion({ itemInfo }) {
                         name="TransactionType"
                         label="Transaction Type"
                         options={["Transfer", "Conversion"]}
+                        onClick={() => {
+                          others.handleReset();
+                          others.setFieldValue(
+                            "TransactionType",
+                            values.TransactionType === "Transfer"
+                              ? "Conversion"
+                              : "Transfer"
+                          );
+                        }}
                       />
                     </Grid>
 
@@ -122,32 +132,39 @@ export default function InventoryTransferConversion({ itemInfo }) {
                           label="partNumber"
                         />
                       </Grid>
-                      <Grid item xs={1}>
+                      <Grid item xs={1.2}>
                         <TextFieldWrapper
                           disabled
                           name="from.DateCode"
                           label="DateCode"
                         />
                       </Grid>
-                      <Grid item xs={1.5}>
+                      <Grid item xs={1.2}>
                         <TextFieldWrapper
                           disabled
                           name="from.LotNumber"
                           label="LotNumber"
                         />
                       </Grid>
-                      <Grid item xs={2}>
+                      <Grid item xs={1.8}>
                         <TextFieldWrapper
                           disabled
                           name="from.BurnOption"
                           label="BurnOption"
                         />
                       </Grid>
-                      <Grid item xs={2}>
+                      <Grid item xs={1.8}>
                         <TextFieldWrapper
                           disabled
                           name="from.CodeVersion"
                           label="CodeVersion"
+                        />
+                      </Grid>
+                      <Grid item xs={1}>
+                        <TextFieldWrapper
+                          disabled
+                          name="from.Marked"
+                          label="Marked"
                         />
                       </Grid>
 
@@ -159,7 +176,7 @@ export default function InventoryTransferConversion({ itemInfo }) {
                         />
                       </Grid>
 
-                      <Grid item xs={2}>
+                      <Grid item xs={1.5}>
                         <TextFieldWrapper
                           disabled
                           type="number"
@@ -180,21 +197,21 @@ export default function InventoryTransferConversion({ itemInfo }) {
                           label="partNumber"
                         />
                       </Grid>
-                      <Grid item xs={1}>
+                      <Grid item xs={1.2}>
                         <TextFieldWrapper
                           disabled
                           name="to.DateCode"
                           label="DateCode"
                         />
                       </Grid>
-                      <Grid item xs={1.5}>
+                      <Grid item xs={1.2}>
                         <TextFieldWrapper
                           disabled
                           name="to.LotNumber"
                           label="LotNumber"
                         />
                       </Grid>
-                      <Grid item xs={2}>
+                      <Grid item xs={1.8}>
                         <CustomSelect
                           disabled={
                             values.TransactionType == "Transfer" ? true : false
@@ -204,13 +221,23 @@ export default function InventoryTransferConversion({ itemInfo }) {
                           options={["None", "Coded", "Keyed", "Code & Keyed"]}
                         />
                       </Grid>
-                      <Grid item xs={2}>
+                      <Grid item xs={1.8}>
                         <TextFieldWrapper
                           disabled={
                             values.TransactionType == "Transfer" ? true : false
                           }
                           name="to.CodeVersion"
                           label="CodeVersion"
+                        />
+                      </Grid>
+                      <Grid item xs={1}>
+                        <CustomSelect
+                          name="to.Marked"
+                          label="Marked"
+                          options={["No", "Yes"]}
+                          disabled={
+                            values.TransactionType == "Transfer" ? true : false
+                          }
                         />
                       </Grid>
 
@@ -224,7 +251,7 @@ export default function InventoryTransferConversion({ itemInfo }) {
                         />
                       </Grid>
 
-                      <Grid item xs={2}>
+                      <Grid item xs={1.5}>
                         <TextFieldWrapper
                           type="number"
                           name="to.QTY"

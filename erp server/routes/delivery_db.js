@@ -23,6 +23,8 @@ router.post("/getSalesOrderDetailForCreateDelivery", (req, res) => {
     salesDetails.SoDetailID, 
     JSON_OBJECT("ProductID", salesDetails.ProductID,"PartNumber", product.PartNumber) as product,
     JSON_OBJECT("value",salesDetails.BurnOption) as BurnOption,
+    "" as CodeVersion,
+    'No' as Marked,
     salesDetails.QTY - CAST(COALESCE(SUM(deliveryDetail.DeliveryQTY), 0) AS SIGNED) AS OpenQTY,
     0 as DeliveryQTY,
     '' as Remark,
@@ -203,7 +205,7 @@ router.post("/getDelivery", (req, res) => {
   delivery.ShipDate,
   SO.DeliveryAddress,
   SO.DeliveryZip,
-  delivery.Remark,
+  IF (delivery.Remark="null","",delivery.Remark) as Remark,
   delivery.Status,
   delivery.TimeStamp 
 FROM
@@ -221,8 +223,10 @@ WHERE
   deliveryDetail.ProductID,
   PartNumber,
   BurnOption,
+  IF( deliveryDetail.CodeVersion='null','', deliveryDetail.CodeVersion) as CodeVersion,
+  deliveryDetail.Marked,
   DeliveryQTY,
-  DeliveryDetail.Remark
+  IF(DeliveryDetail.Remark="null","",DeliveryDetail.Remark) as Remark
 FROM
   sales_db.delivery_detail deliveryDetail
       JOIN
@@ -324,7 +328,9 @@ router.post("/updateDelivery", async (req, res) => {
         await connection.query(
           `UPDATE sales_db.delivery_detail SET Remark = '${
             item.Remark === "" ? null : item.Remark
-          }'  WHERE DeliveryItemID = ${item.DeliveryItemID} `
+          }', CodeVersion='${item.CodeVersion}', Marked='${
+            item.Marked
+          }' WHERE DeliveryItemID = ${item.DeliveryItemID} `
         );
       });
       connection.commit();

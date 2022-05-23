@@ -34,6 +34,7 @@ export default function InventoryList() {
     const result = await getInventoryList();
 
     if (result.data) {
+      console.log(result.data);
       setData(result.data);
     }
   }, []);
@@ -77,6 +78,7 @@ export default function InventoryList() {
             <TableCell colSpan={3} />
             <TableCell>Location</TableCell>
             <TableCell>BurnOption</TableCell>
+            <TableCell>Marked</TableCell>
             <TableCell>CodeVersion</TableCell>
             <TableCell>DateCode</TableCell>
             <TableCell>LotNumber</TableCell>
@@ -90,6 +92,7 @@ export default function InventoryList() {
                 <TableCell colSpan={3} />
                 <TableCell>{item.Location}</TableCell>
                 <TableCell>{item.BurnOption}</TableCell>
+                <TableCell>{item.Marked}</TableCell>
                 <TableCell>{item.CodeVersion}</TableCell>
                 <TableCell>{item.DateCode}</TableCell>
                 <TableCell>{item.LotNumber}</TableCell>
