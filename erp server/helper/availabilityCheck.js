@@ -27,7 +27,7 @@ const checkAvailabilityByItems = async (ProductID) => {
           Timestamp > @SNAPSHOTTIME AND  ProductID IN (${ProductID.toString()})  UNION ALL SELECT 
           ProductID, PickQTY * - 1 AS QTY
       FROM
-          sales_db.pick_pack
+          sales_db.pick
       WHERE
           ShipDateTime > @SNAPSHOTTIME
               AND Status = 'shipped' AND  ProductID IN (${ProductID.toString()})  UNION ALL SELECT 
@@ -39,17 +39,6 @@ const checkAvailabilityByItems = async (ProductID) => {
   GROUP BY ProductID;`;
 
   return await dbp.query(sqlStr);
-
-  //   return new Promise(function (resolve, reject) {
-  //     db.query(sqlStr, (err, result, fields) => {
-  //       if (err) {
-  //         console.log(err);
-  //         reject(new Error(err.toString()));
-  //       }
-
-  //       resolve(result);
-  //     });
-  //   });
 };
 
 module.exports = checkAvailabilityByItems;

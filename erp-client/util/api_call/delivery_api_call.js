@@ -94,3 +94,15 @@ export const update_delivery = async (DeliveryDetail) => {
     throw new Error(err);
   }
 };
+
+export const get_list_released_delivery_for_pickpack = async () => {
+  try {
+    const result = await axios.get(
+      process.env.NEXT_PUBLIC_SERVER_HOST + "/delivery/listPickPackDelivery"
+    );
+
+    return result;
+  } catch (err) {
+    throw new Error(err);
+  }
+};

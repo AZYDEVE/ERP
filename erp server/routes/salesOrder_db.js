@@ -374,7 +374,7 @@ router.post("/getSalesOrderAvaibility", (req, res) => {
             Timestamp > @SNAPSHOTTIME AND FIND_IN_SET(ProductID, @SALES_ORDER_PRODUCTID) UNION ALL SELECT 
             ProductID, PickQTY * - 1 AS QTY
         FROM
-            sales_db.pick_pack
+            sales_db.pick
         WHERE
             ShipDateTime > @SNAPSHOTTIME
                 AND Status = 'shipped' AND FIND_IN_SET(ProductID, @SALES_ORDER_PRODUCTID) UNION ALL SELECT 

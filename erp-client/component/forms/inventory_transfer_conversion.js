@@ -218,7 +218,7 @@ export default function InventoryTransferConversion({ itemInfo }) {
                           }
                           name="to.BurnOption"
                           label="BurnOption"
-                          options={["None", "Coded", "Keyed", "Code & Keyed"]}
+                          options={["NONE", "CODED", "KEYED", "CODED & KEYED"]}
                         />
                       </Grid>
                       <Grid item xs={1.8}>

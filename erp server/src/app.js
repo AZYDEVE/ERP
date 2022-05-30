@@ -11,6 +11,7 @@ const receiving_routes = require("../routes/receiving_db");
 const inventory = require("../routes/inventory_db");
 const salesOrder = require("../routes/salesOrder_db");
 const delivery = require("../routes/delivery_db");
+const pickpack = require("../routes/pickpack_db");
 const app = express();
 
 const cors = require("cors");
@@ -30,5 +31,6 @@ app.use("/po", po_routes);
 app.use("/inventory", inventory);
 app.use("/salesOrder", salesOrder);
 app.use("/delivery", delivery);
+app.use("/pickpack", pickpack);
 
 module.exports = app;

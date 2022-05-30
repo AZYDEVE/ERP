@@ -7,7 +7,10 @@ import {
   Button,
   Box,
   Backdrop,
+  ListItem,
+  List,
 } from "@mui/material";
+import CircleIcon from "@mui/icons-material/Circle";
 
 import TextFieldWrapper from "./formComponent/field";
 import DatePicker from "./formComponent/datePicker";
@@ -22,23 +25,193 @@ import Swal from "sweetalert2";
 import {
   update_delivery,
   delete_delivery,
-  get_delivery,
   release_delivery,
 } from "../../util/api_call/delivery_api_call";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CustomSelect from "./formComponent/select";
+import {
+  delete_pickpack_set_delivery_status_to_block,
+  get_Delivery_for_PickAndPack,
+} from "../../util/api_call/pickpack_api_call";
+import { DataGrid } from "@mui/x-data-grid";
 
-export default function deliveryUpdateDelete({ DeliveryID }) {
-  const [DeliveryDetail, setDeliveryDetail] = useState(null);
-  const [availbleProductList, setAvailableProductList] = useState(null);
+const CustomDataGridPickPack = ({
+  inventoryList,
+  itemValue,
+  formikFunction,
+  orderProductIndex,
+}) => {
+  console.log(inventoryList);
+  inventoryList = inventoryList.map((item, index) => ({ ...item, id: index }));
+  const columns = [
+    // {
+    //   field: "id",
+    //   headerName: "index",
+    //   headerClassName: "datagridHeader",
+    //   align: "center",
+    //   headerAlign: "center",
+    //   flex: 0.8,
+    // },
+    {
+      field: "BurnOption",
+      headerName: "BurnOption",
+      headerClassName: "datagridHeader",
+      align: "center",
+      headerAlign: "center",
+      flex: 0.8,
+    },
+    {
+      field: "CodeVersion",
+      headerName: "CodeVersion",
+      headerClassName: "datagridHeader",
+      align: "center",
+      headerAlign: "center",
+      flex: 2,
+    },
+    {
+      field: "Marked",
+      headerName: "Marked",
+      headerClassName: "datagridHeader",
+      align: "center",
+      headerAlign: "center",
+      flex: 0.5,
+    },
+    {
+      field: "DateCode",
+      headerName: "DateCode",
+      headerClassName: "datagridHeader",
+      align: "center",
+      headerAlign: "center",
+      flex: 1,
+    },
+    {
+      field: "LotNumber",
+      headerName: "Lot",
+      headerClassName: "datagridHeader",
+      align: "center",
+      headerAlign: "center",
+      flex: 1,
+    },
+    {
+      field: "Location",
+      headerName: "Location",
+      headerClassName: "datagridHeader",
+      align: "center",
+      headerAlign: "center",
+      flex: 0.8,
+    },
+    {
+      field: "QTY",
+      headerName: "Ava QTY",
+      headerClassName: "datagridHeader",
+      align: "center",
+      headerAlign: "center",
+      flex: 0.8,
+    },
+    {
+      field: "PickQTY",
+      headerName: "PickQTY",
+      headerClassName: "datagridHeader",
+      align: "center",
+      headerAlign: "center",
+      flex: 1,
+      editable: true,
+      type: "number",
+    },
+  ];
+
+  const getError = () => {
+    const fieldError = formikFunction.getFieldMeta(
+      `orderProduct[${orderProductIndex}].onHandProduct[0].QtyByProductStatus`
+    );
+    console.log(fieldError);
+    if (fieldError.error) {
+      return (
+        <>
+          <List>
+            {fieldError.error.map((item, index) => (
+              <ListItem>
+                <CircleIcon sx={{ fontSize: 8, color: "red" }} />
+                <Typography sx={{ color: "red", paddingLeft: 2 }}>
+                  {`Index ${index + 1}- ${Object.keys(item)[0]} : ${
+                    Object.values(item)[0]
+                  }`}
+                </Typography>
+              </ListItem>
+            ))}
+          </List>
+        </>
+      );
+    }
+  };
+
+  return (
+    <>
+      <Box
+        sx={{
+          height: 300,
+          width: "100%",
+          overflow: "auto",
+          "& .matching": {
+            backgroundColor: "#E5F6DF",
+          },
+          "& .notMatching": {
+            backgroundColor: "yellow",
+          },
+        }}>
+        <DataGrid
+          getRowClassName={(params) => {
+            const rowStockStatus =
+              params.row.BurnOption +
+              params.row.CodeVersion +
+              params.row.Marked;
+
+            const requestStockStatus =
+              itemValue.BurnOption + itemValue.CodeVersion + itemValue.Marked;
+
+            if (rowStockStatus == requestStockStatus) {
+              return "matching";
+            }
+          }}
+          headerHeight={50}
+          rowHeight={60}
+          columns={columns}
+          rows={inventoryList}
+          hideFooter
+          showErro
+          onCellEditCommit={(params) => {
+            formikFunction.setFieldValue(
+              `orderProduct[${orderProductIndex}].onHandProduct[0].QtyByProductStatus[${params.id}].PickQTY`,
+              params.value
+            );
+          }}
+          isCellEditable={(params) => {
+            if (
+              params.row.BurnOption === itemValue.BurnOption &&
+              params.row.CodeVersion === itemValue.CodeVersion &&
+              params.row.Marked === itemValue.Marked
+            ) {
+              return true;
+            }
+            return false;
+          }}
+        />
+      </Box>
+      {getError()}
+    </>
+  );
+};
+
+export default function Pickpack({ DeliveryID }) {
+  const [PickPackDetail, setPickPackDetail] = useState(null);
   const [spiner, setSpiner] = useState(false);
 
   useEffect(async () => {
-    const result = await get_delivery(DeliveryID);
+    const result = await get_Delivery_for_PickAndPack(DeliveryID);
 
     if (result.data) {
       console.log(result.data);
-      setDeliveryDetail(result.data);
+      setPickPackDetail(result.data);
     }
   }, []);
 
@@ -53,7 +226,27 @@ export default function deliveryUpdateDelete({ DeliveryID }) {
       orderProduct: yup.array().of(
         yup.object().shape({
           BurnOption: yup.string().required("required"),
-          DeliveryQTY: yup.number().required("required"),
+          DeliveryQTY: yup
+            .number()
+            .required("required")
+            .test(
+              "checkPickQTY",
+              "PickQTY is more than DeliveryQTY",
+              (value, schema) => {
+                const listOfPickQTY =
+                  schema.from[0].value.onHandProduct[0].QtyByProductStatus;
+                const totalPick = listOfPickQTY.reduce(
+                  (pre, current) => pre + current.PickQTY,
+                  0
+                );
+
+                if (totalPick > value) {
+                  return false;
+                } else {
+                  return true;
+                }
+              }
+            ),
           ProductID: yup.number().required("required"),
           CodeVersion: yup
             .string()
@@ -62,7 +255,6 @@ export default function deliveryUpdateDelete({ DeliveryID }) {
               "checkIfNeeded",
               "please specify version#",
               (value, schema) => {
-                console.log(schema);
                 if (
                   (schema.from[0].value.BurnOption === "CODED" ||
                     schema.from[0].value.BurnOption === "CODED & KEYED") &
@@ -76,6 +268,29 @@ export default function deliveryUpdateDelete({ DeliveryID }) {
               }
             ),
           Marked: yup.string().required("required"),
+          onHandProduct: yup.array().of(
+            yup.object().shape({
+              QtyByProductStatus: yup.array().of(
+                yup.object().shape({
+                  PickQTY: yup
+                    .number()
+                    .required("required")
+                    .test(
+                      "is it greater availableQTY",
+                      "Cannot be greater than Available QTY",
+                      (value, schema) => {
+                        console.log(schema);
+                        if (value > schema.from[0].value.QTY) {
+                          return false;
+                        } else {
+                          return true;
+                        }
+                      }
+                    ),
+                })
+              ),
+            })
+          ),
         })
       ),
     });
@@ -83,7 +298,9 @@ export default function deliveryUpdateDelete({ DeliveryID }) {
 
   const handleDelete = async () => {
     try {
-      const result = await delete_delivery(DeliveryID);
+      const result = await delete_pickpack_set_delivery_status_to_block(
+        DeliveryID
+      );
       setSpiner(false);
       if (result.status >= 200 || result.status <= 299) {
         Swal.fire({
@@ -136,7 +353,7 @@ export default function deliveryUpdateDelete({ DeliveryID }) {
     }
   };
 
-  if (!DeliveryDetail) {
+  if (!PickPackDetail) {
     return (
       <>
         <h1>Loading</h1>
@@ -234,12 +451,19 @@ export default function deliveryUpdateDelete({ DeliveryID }) {
 
             <Grid item xs={12} mt={1}>
               <TextFieldWrapper
+                inputProps={{ readOnly: true }}
                 fullWidth
                 name={`orderProduct[${index}].Remark`}
                 label="Remark"
-                multiline={true}
-                defaultValue=""
                 rows={1}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <CustomDataGridPickPack
+                inventoryList={values.onHandProduct[0].QtyByProductStatus}
+                itemValue={values}
+                formikFunction={formikFunctions}
+                orderProductIndex={index}
               />
             </Grid>
           </Grid>
@@ -253,8 +477,9 @@ export default function deliveryUpdateDelete({ DeliveryID }) {
     <>
       <Formik
         enableReinitialize
+        validateOnChange
         initialValues={{
-          ...DeliveryDetail,
+          ...PickPackDetail,
         }}
         validationSchema={createValidationSchama()}
         onSubmit={async (values) => {
@@ -285,14 +510,18 @@ export default function deliveryUpdateDelete({ DeliveryID }) {
           }
         }}>
         {({ values, ...formikFunctions }) => {
-          console.log(values);
+          console.log(
+            formikFunctions.getFieldMeta(
+              `orderProduct[0].onHandProduct[0].QtyByProductStatus`
+            )
+          );
           return (
             <Form>
               <Container>
                 <Grid container spacing={3}>
                   <Grid item xs={12} align="center">
                     <Typography variant="h6">
-                      Update Delivery # {values.DeliveryID}
+                      Pick&Pack Delivery # {values.DeliveryID}
                     </Typography>
                   </Grid>
 
@@ -401,36 +630,33 @@ export default function deliveryUpdateDelete({ DeliveryID }) {
                             justifyContent="center"
                             mt={2}
                             spacing={2}>
-                            {values.Status == "block" ? (
-                              <Grid item>
-                                <Button
-                                  variant="contained"
-                                  size="large"
-                                  sx={{ color: "red" }}
-                                  onClick={handleDelete}>
-                                  <DeleteIcon />
-                                </Button>
-                              </Grid>
-                            ) : null}
+                            <Grid item>
+                              <Button
+                                variant="contained"
+                                size="large"
+                                sx={{ color: "red" }}
+                                onClick={handleDelete}>
+                                <DeleteIcon />
+                              </Button>
+                            </Grid>
+
                             <Grid item>
                               <SubmitButtom
                                 variant="contained"
                                 size="large"
                                 sx={{ color: "red" }}>
-                                update
+                                save
                               </SubmitButtom>
                             </Grid>
-                            {values.Status == "block" ? (
-                              <Grid item>
-                                <Button
-                                  variant="contained"
-                                  size="large"
-                                  sx={{ color: "red" }}
-                                  onClick={handleRelease}>
-                                  Release
-                                </Button>
-                              </Grid>
-                            ) : null}
+
+                            <Grid item>
+                              <Button
+                                variant="contained"
+                                size="large"
+                                onClick={handleRelease}>
+                                Packing
+                              </Button>
+                            </Grid>
                           </Grid>
                         </>
                       );

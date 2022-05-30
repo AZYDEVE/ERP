@@ -128,7 +128,7 @@ router.get("/getAllStockAvailability", (req, res) => {
           Timestamp > @SNAPSHOTTIME UNION SELECT 
           ProductID, PickQTY * - 1 AS QTY
       FROM
-          sales_db.pick_pack
+          sales_db.pick
       WHERE
           ShipDateTime > @SNAPSHOTTIME
               AND Status = 'shipped' UNION SELECT 

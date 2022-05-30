@@ -23,7 +23,7 @@ router.post("/getSalesOrderDetailForCreateDelivery", (req, res) => {
     salesDetails.SoDetailID, 
     JSON_OBJECT("ProductID", salesDetails.ProductID,"PartNumber", product.PartNumber) as product,
     JSON_OBJECT("value",salesDetails.BurnOption) as BurnOption,
-    "" as CodeVersion,
+    '' as CodeVersion,
     'No' as Marked,
     salesDetails.QTY - CAST(COALESCE(SUM(deliveryDetail.DeliveryQTY), 0) AS SIGNED) AS OpenQTY,
     0 as DeliveryQTY,
@@ -137,6 +137,8 @@ router.post("/createDelivery", async (req, res) => {
         ProductID: obj.product.ProductID,
         DeliveryQTY: obj.DeliveryQTY,
         BurnOption: obj.BurnOption.value,
+        CodeVersion: obj.CodeVersion,
+        Marked: obj.Marked,
         Remark: obj.Remark,
         Status: obj.Status,
       };
@@ -181,7 +183,41 @@ FROM
       LEFT JOIN
   master_db.customer customer ON SO.CustomerID = customer.CustomerID
 WHERE
-  delivery.Status IN ('block' , 'released', 'picking', 'packed')
+  delivery.Status IN ('block' , 'released','picking', 'picked', 'packed')
+GROUP BY delivery.DeliveryID`;
+
+  db.query(getListOfOpenDelivery, (err, results, fields) => {
+    if (err) {
+      console.log(err);
+      res.status(500).json({ data: err });
+    }
+    res.status(200).json(results);
+  });
+});
+
+router.get("/listPickPackDelivery", (req, res) => {
+  const getListOfOpenDelivery = `
+SELECT 
+  delivery.DeliveryID as id,
+  delivery.DeliveryID,
+  delivery.SalesOrderID,
+  CreateDate,
+  ShipDate,
+  Company_name_ch,
+  SUM(deliveryDetail.DeliveryQTY * SoDetail.UnitPrice) AS Amount,
+  delivery.Status
+FROM
+  sales_db.delivery delivery
+      RIGHT JOIN
+  sales_db.delivery_detail deliveryDetail ON delivery.DeliveryID = deliveryDetail.DeliveryID
+      LEFT JOIN
+  sales_db.sales_order SO ON delivery.SalesOrderID = SO.SalesOrderID
+      LEFT JOIN
+  sales_db.sales_order_detail SOdetail ON SOdetail.SoDetailID = deliveryDetail.SoDetailID
+      LEFT JOIN
+  master_db.customer customer ON SO.CustomerID = customer.CustomerID
+WHERE
+  delivery.Status IN ('released','picking', 'picked', 'packed')
 GROUP BY delivery.DeliveryID`;
 
   db.query(getListOfOpenDelivery, (err, results, fields) => {
@@ -205,7 +241,7 @@ router.post("/getDelivery", (req, res) => {
   delivery.ShipDate,
   SO.DeliveryAddress,
   SO.DeliveryZip,
-  IF (delivery.Remark="null","",delivery.Remark) as Remark,
+  IF (delivery.Remark='null','',delivery.Remark) as Remark,
   delivery.Status,
   delivery.TimeStamp 
 FROM

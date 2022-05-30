@@ -3,10 +3,10 @@ import RingLoader from "react-spinners/RingLoader";
 import { useEffect, useState } from "react";
 import { Grid, Backdrop, Typography, Box, Modal } from "@mui/material";
 import Swal from "sweetalert2";
-import { get_list_open_deliveries } from "../../../util/api_call/delivery_api_call";
+import { get_list_released_delivery_for_pickpack } from "../../../util/api_call/delivery_api_call";
 import DeliveryUpdateDelete from "../../../component/forms/delivery_update_delete_form";
-
-const OpenDeliveryList = () => {
+import Pickpack from "../../../component/forms/pickpack_form";
+const PickPackDeliveryList = () => {
   const [DeliveryList, setDeliveryList] = useState("");
   const [spiner, setSpiner] = useState(false);
   const [modalIsOpen, setModalIsOpen] = useState(false);
@@ -15,7 +15,7 @@ const OpenDeliveryList = () => {
   useEffect(() => {
     const getOpenDelivery = async () => {
       try {
-        const result = await get_list_open_deliveries();
+        const result = await get_list_released_delivery_for_pickpack();
 
         setDeliveryList(result.data);
         console.log(DeliveryList);
@@ -105,7 +105,7 @@ const OpenDeliveryList = () => {
   return (
     <Grid container justifyContent="center">
       <Grid item xs={12} align="center">
-        <Typography variant="h6">Open Delivery List</Typography>
+        <Typography variant="h6">Pick & Pack Delivery List</Typography>
       </Grid>
       <Grid item xs={7.5} mt={3}>
         <Box sx={{ height: "85vh", width: "100%" }}>
@@ -146,11 +146,11 @@ const OpenDeliveryList = () => {
             p: 4,
             overflow: "scroll",
           }}>
-          <DeliveryUpdateDelete DeliveryID={selectedDelivery} />
+          <Pickpack DeliveryID={selectedDelivery} />
         </Box>
       </Modal>
     </Grid>
   );
 };
 
-export default OpenDeliveryList;
+export default PickPackDeliveryList;

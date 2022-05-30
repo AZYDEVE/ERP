@@ -7,8 +7,10 @@ import {
   Button,
   Box,
   Backdrop,
+  List,
+  ListItem,
 } from "@mui/material";
-
+import CircleIcon from "@mui/icons-material/Circle";
 import TextFieldWrapper from "../../component/forms/formComponent/field";
 import DatePicker from "../../component/forms/formComponent/datePicker";
 import SubmitButtom from "../../component/forms/formComponent/submitButton";
@@ -37,7 +39,6 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
   useEffect(async () => {
     const result = await get_available_stock_for_salesorder(salesOrderID);
     if (result.data) {
-      console.log(result.data);
       const availablility = {};
       result.data.map((item, index) => {
         availablility[item.ProductID] = item;
@@ -63,48 +64,102 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
       CreateDate: yup.string().required("required!"),
       ShipDate: yup.string().required("required!"),
       orderProduct: yup.array().of(
-        yup.object().shape({
-          BurnOption: yup.object().shape({
-            value: yup.string().required("required"),
-          }),
-          CodeVersion: yup.string().required("required"),
-          Marked: yup.string().required("required"),
-          DeliveryQTY: yup
-            .number()
-            .typeError("must enter a number")
-            .test(
-              "validate delivery QTY",
-              "Cannot be more than Open QTY and Available QTY",
-              (value, schema) => {
-                console.log(schema);
-                const openQTY = schema.from[0].value.OpenQTY;
-                const availableQTY =
-                  schema.from[1].value.availableStock[
-                    schema.from[0].value.product.ProductID
-                  ].AvailableQTY;
-
-                if (value > openQTY) {
-                  return schema.createError({
-                    message: "Cannot be more than Open QTY ",
-                  });
+        yup
+          .object()
+          .shape({
+            BurnOption: yup.object().shape({
+              value: yup.string().required("required"),
+            }),
+            CodeVersion: yup
+              .string()
+              .test(
+                "checkIfNeeded",
+                "please specify version#",
+                (value, schema) => {
+                  if (
+                    (schema.from[0].value.BurnOption.value === "CODED" ||
+                      schema.from[0].value.BurnOption.value ===
+                        "CODED & KEYED") &
+                    (value === undefined) &
+                    (schema.from[0].value.DeliveryQTY !== 0)
+                  ) {
+                    return schema.createError({
+                      message: `${schema.from[0].value.BurnOption.value} -please specify version# `,
+                    });
+                  }
+                  return true;
                 }
+              ),
+            Marked: yup.string().required("required"),
+            DeliveryQTY: yup
+              .number()
+              .typeError("must enter a number")
+              .test(
+                "validate delivery QTY",
+                "Cannot be more than Open QTY and Available QTY",
+                (value, schema) => {
+                  const openQTY = schema.from[0].value.OpenQTY;
+                  const availableQTY =
+                    schema.from[1].value.availableStock[
+                      schema.from[0].value.product.ProductID
+                    ].AvailableQTY;
 
-                if (availableQTY < 0) {
-                  return schema.createError({
-                    message: "Cannot deliver more than availableQTY",
-                  });
+                  if (value > openQTY) {
+                    return schema.createError({
+                      message: "Cannot be more than Open QTY ",
+                    });
+                  }
+
+                  if (availableQTY < 0) {
+                    return schema.createError({
+                      message: "Cannot deliver more than availableQTY",
+                    });
+                  }
+
+                  return true;
                 }
+              ),
+            product: yup
+              .object()
+              .shape({
+                PartNumber: yup.string().required("required"),
+              })
+              .required("required"),
+          })
+          .test(
+            "checkIfSameProductInDelivery",
+            "Duplicate items are in the delivery",
+            (value, schema) => {
+              console.log(schema);
+              let notDuplicate = true;
+              if (value.DeliveryQTY > 0) {
+                const valueProductStr =
+                  value.product.ProductID +
+                  value.BurnOption.value +
+                  value.CodeVersion +
+                  value.Marked;
 
-                return true;
+                schema.from[1].value.orderProduct.map((item, index) => {
+                  if (
+                    item.SoDetailID !== value.SoDetailID &&
+                    item.DeliveryQTY > 0
+                  ) {
+                    const itemProductStr =
+                      item.product.ProductID +
+                      item.BurnOption.value +
+                      item.CodeVersion +
+                      item.Marked;
+
+                    if (itemProductStr === valueProductStr) {
+                      notDuplicate = false;
+                    }
+                  }
+                });
               }
-            ),
-          product: yup
-            .object()
-            .shape({
-              PartNumber: yup.string().required("required"),
-            })
-            .required("required"),
-        })
+
+              return notDuplicate;
+            }
+          )
       ),
     });
   };
@@ -118,6 +173,25 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
       </>
     );
   }
+
+  const getError = (formikFunction, index) => {
+    const fieldError = formikFunction.getFieldMeta(`orderProduct[${index}]`);
+    console.log(fieldError);
+    if (fieldError.error === "Duplicate items are in the delivery") {
+      return (
+        <>
+          <List>
+            <ListItem>
+              <CircleIcon sx={{ fontSize: 8, color: "red" }} />
+              <Typography sx={{ color: "red", paddingLeft: 2 }}>
+                {`${fieldError.error}`}
+              </Typography>
+            </ListItem>
+          </List>
+        </>
+      );
+    }
+  };
 
   //************************************order detail form***********************************/
   const generateProductList = (
@@ -178,13 +252,16 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
                 inputProps={{ readOnly: true }}
               />
             </Grid>
+
             <Grid item xs={4}>
               <TextFieldWrapper
                 fullWidth
+                disabled={values.BurnOption.value == "NONE" ? true : false}
                 name={`orderProduct[${index}].CodeVersion`}
                 label="CodeVersion"
               />
             </Grid>
+
             <Grid item xs={2}>
               <CustomSelect
                 fullWidth
@@ -228,7 +305,6 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
                 name={`orderProduct[${index}].DeliveryQTY`}
                 label="Delivery QTY"
                 onKeyUp={(event) => {
-                  console.log(event.target.valueAsNumber);
                   if (event.target.value < 0) {
                     event.target.value = 0;
                   }
@@ -267,6 +343,7 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
                 rows={1}
               />
             </Grid>
+            {getError(formikFunctions, index)}
           </Grid>
         </Grid>
       </Grid>
@@ -298,7 +375,6 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
               showConfirmButton: true,
             });
           } else {
-            console.log("hello");
             try {
               const result = await CREATE_DELIVERY(submitValues);
               setSpiner(false);
@@ -326,7 +402,7 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
           }
         }}>
         {({ values, ...formikFunctions }) => {
-          console.log(values);
+          console.log(formikFunctions);
           return (
             <Form>
               <Container>

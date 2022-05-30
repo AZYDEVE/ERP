@@ -247,7 +247,7 @@ const Sidebar = () => {
             </Link>
           </ListItemButton>
           <ListItemButton sx={{ pl: 12 }} onClick={() => setState(false)}>
-            <Link href="/master_data/supplier_master">
+            <Link href="/sales/delivery/pick_pack_list">
               <ListItemText
                 primary={
                   <Typography sx={{ fontSize: "0.8rem", color: "blue" }}>
