@@ -55,7 +55,8 @@ router.post("/getDeliveryforPickAndPack", (req, res) => {
     SO.DeliveryZip,
     IF (delivery.Remark='null','',delivery.Remark) as Remark,
     delivery.Status,
-    delivery.TimeStamp 
+    delivery.TimeStamp,
+    delivery.PickTime
   FROM
     sales_db.delivery AS delivery
         LEFT JOIN
@@ -153,7 +154,7 @@ FROM
       sales_db.pick p
   LEFT JOIN sales_db.delivery delivery ON P.DeliveryID = delivery.DeliveryID
   WHERE
-      P.ShipDateTime > (SELECT 
+      P.TimeStamp > (SELECT 
               TimeStamp
           FROM
               inventory_db.inventory_snapshot
@@ -248,8 +249,32 @@ router.post("/deletePickPack", async (req, res) => {
   }
 });
 
-router.post("/pickpack/savepickpack", (req, res) => {
+router.post("/savepickpack", async (req, res) => {
   console.log(req.body);
+
+  const verifyConcurrentAccess = `SELECT PickTime from sales_db.delivery WHERE deliveryID = ${req.body.DeliveryID}`;
+  const [shipTime, other] = await dbp.query(verifyConcurrentAccess);
+  if (shipTime[0].PickTime !== req.body.PickTime) {
+    res.status(250).json("Someone Modified the pick detail before you");
+    return;
+  }
+
+  try {
+    const connection = await dbp.getConnection();
+    try {
+      await connection.beginTransaction();
+      const UpdatePickTime = `UPDATE sales_db.delivery SET PickTime = current_timestamp(3) WHERE DeliveryID = ${req.body.DeliveryID} `;
+      await connection.query(UpdatePickTime);
+      await connection.commit();
+    } catch (err) {
+      console.log(err);
+      connection.rollback();
+      connection.release();
+    }
+  } catch (err) {
+    console.log(err);
+  }
+  res.status(200).json(`picking detail is saved`);
 });
 
 module.exports = router;

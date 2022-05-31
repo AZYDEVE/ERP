@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import {
   Container,
   Grid,
-  TextField,
   Typography,
   Button,
   Box,
@@ -20,10 +19,7 @@ import * as yup from "yup";
 import Router from "next/router";
 import RingLoader from "react-spinners/RingLoader";
 import Swal from "sweetalert2";
-import {
-  get_available_stock_for_salesorder,
-  update_sales_order,
-} from "../../util/api_call/salesOrder_api_call";
+import { get_available_stock_for_salesorder } from "../../util/api_call/salesOrder_api_call";
 
 import {
   CREATE_DELIVERY,

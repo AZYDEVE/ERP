@@ -22,185 +22,14 @@ import Router from "next/router";
 import RingLoader from "react-spinners/RingLoader";
 import Swal from "sweetalert2";
 
-import {
-  update_delivery,
-  delete_delivery,
-  release_delivery,
-} from "../../util/api_call/delivery_api_call";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CustomSelect from "./formComponent/select";
 import {
   delete_pickpack_set_delivery_status_to_block,
   get_Delivery_for_PickAndPack,
+  save_pick_pack,
 } from "../../util/api_call/pickpack_api_call";
 import { DataGrid } from "@mui/x-data-grid";
-
-const CustomDataGridPickPack = ({
-  inventoryList,
-  itemValue,
-  formikFunction,
-  orderProductIndex,
-}) => {
-  console.log(inventoryList);
-  inventoryList = inventoryList.map((item, index) => ({ ...item, id: index }));
-  const columns = [
-    // {
-    //   field: "id",
-    //   headerName: "index",
-    //   headerClassName: "datagridHeader",
-    //   align: "center",
-    //   headerAlign: "center",
-    //   flex: 0.8,
-    // },
-    {
-      field: "BurnOption",
-      headerName: "BurnOption",
-      headerClassName: "datagridHeader",
-      align: "center",
-      headerAlign: "center",
-      flex: 0.8,
-    },
-    {
-      field: "CodeVersion",
-      headerName: "CodeVersion",
-      headerClassName: "datagridHeader",
-      align: "center",
-      headerAlign: "center",
-      flex: 2,
-    },
-    {
-      field: "Marked",
-      headerName: "Marked",
-      headerClassName: "datagridHeader",
-      align: "center",
-      headerAlign: "center",
-      flex: 0.5,
-    },
-    {
-      field: "DateCode",
-      headerName: "DateCode",
-      headerClassName: "datagridHeader",
-      align: "center",
-      headerAlign: "center",
-      flex: 1,
-    },
-    {
-      field: "LotNumber",
-      headerName: "Lot",
-      headerClassName: "datagridHeader",
-      align: "center",
-      headerAlign: "center",
-      flex: 1,
-    },
-    {
-      field: "Location",
-      headerName: "Location",
-      headerClassName: "datagridHeader",
-      align: "center",
-      headerAlign: "center",
-      flex: 0.8,
-    },
-    {
-      field: "QTY",
-      headerName: "Ava QTY",
-      headerClassName: "datagridHeader",
-      align: "center",
-      headerAlign: "center",
-      flex: 0.8,
-    },
-    {
-      field: "PickQTY",
-      headerName: "PickQTY",
-      headerClassName: "datagridHeader",
-      align: "center",
-      headerAlign: "center",
-      flex: 1,
-      editable: true,
-      type: "number",
-    },
-  ];
-
-  const getError = () => {
-    const fieldError = formikFunction.getFieldMeta(
-      `orderProduct[${orderProductIndex}].onHandProduct[0].QtyByProductStatus`
-    );
-    console.log(fieldError);
-    if (fieldError.error) {
-      return (
-        <>
-          <List>
-            {fieldError.error.map((item, index) => (
-              <ListItem>
-                <CircleIcon sx={{ fontSize: 8, color: "red" }} />
-                <Typography sx={{ color: "red", paddingLeft: 2 }}>
-                  {`Index ${index + 1}- ${Object.keys(item)[0]} : ${
-                    Object.values(item)[0]
-                  }`}
-                </Typography>
-              </ListItem>
-            ))}
-          </List>
-        </>
-      );
-    }
-  };
-
-  return (
-    <>
-      <Box
-        sx={{
-          height: 300,
-          width: "100%",
-          overflow: "auto",
-          "& .matching": {
-            backgroundColor: "#E5F6DF",
-          },
-          "& .notMatching": {
-            backgroundColor: "yellow",
-          },
-        }}>
-        <DataGrid
-          getRowClassName={(params) => {
-            const rowStockStatus =
-              params.row.BurnOption +
-              params.row.CodeVersion +
-              params.row.Marked;
-
-            const requestStockStatus =
-              itemValue.BurnOption + itemValue.CodeVersion + itemValue.Marked;
-
-            if (rowStockStatus == requestStockStatus) {
-              return "matching";
-            }
-          }}
-          headerHeight={50}
-          rowHeight={60}
-          columns={columns}
-          rows={inventoryList}
-          hideFooter
-          showErro
-          onCellEditCommit={(params) => {
-            formikFunction.setFieldValue(
-              `orderProduct[${orderProductIndex}].onHandProduct[0].QtyByProductStatus[${params.id}].PickQTY`,
-              params.value
-            );
-          }}
-          isCellEditable={(params) => {
-            if (
-              params.row.BurnOption === itemValue.BurnOption &&
-              params.row.CodeVersion === itemValue.CodeVersion &&
-              params.row.Marked === itemValue.Marked
-            ) {
-              return true;
-            }
-            return false;
-          }}
-        />
-      </Box>
-      {getError()}
-    </>
-  );
-};
 
 export default function Pickpack({ DeliveryID }) {
   const [PickPackDetail, setPickPackDetail] = useState(null);
@@ -215,6 +44,7 @@ export default function Pickpack({ DeliveryID }) {
     }
   }, []);
 
+  // validation schema for formik to validate user input
   const createValidationSchama = () => {
     return yup.object().shape({
       Company_name_ch: yup.string().required("required!"),
@@ -279,7 +109,6 @@ export default function Pickpack({ DeliveryID }) {
                       "is it greater availableQTY",
                       "Cannot be greater than Available QTY",
                       (value, schema) => {
-                        console.log(schema);
                         if (value > schema.from[0].value.QTY) {
                           return false;
                         } else {
@@ -296,6 +125,7 @@ export default function Pickpack({ DeliveryID }) {
     });
   };
 
+  // delete the picking and packing detail and change the delivery status to Block
   const handleDelete = async () => {
     try {
       const result = await delete_pickpack_set_delivery_status_to_block(
@@ -323,23 +153,43 @@ export default function Pickpack({ DeliveryID }) {
     }
   };
 
-  const handleRelease = async () => {
+  // prepare the request body to save pick detail
+  const prepareOjectForSaving = (value, formikFunctions) => {
+    if (value.Status === "released") {
+      formikFunctions.setFieldValue("Status", "picking");
+      value.Status = "picking";
+    }
+
+    const pickItems = [];
+    value.orderProduct.map((item) => {
+      item.onHandProduct[0].QtyByProductStatus.map((pickItem) => {
+        const obj = {};
+        if (pickItem.PickQTY > 0) {
+          obj = { ...pickItem };
+          obj[`DeliveryItemID`] = item.DeliveryItemID;
+          obj[`DeliveryID`] = item.DeliveryID;
+          pickItems.push(obj);
+        }
+      });
+    });
+
+    const submitOject = {
+      ...value,
+      pickItems: pickItems,
+    };
+
+    delete submitOject.orderProduct;
+    return submitOject;
+  };
+
+  // calling api to save the picking detail
+  const toSave = async (submitObj) => {
     try {
-      const result = await release_delivery(DeliveryID);
-      setSpiner(false);
+      const result = await save_pick_pack(submitObj);
+      console.log(result);
       if (result.status >= 200 || result.status <= 299) {
         Swal.fire({
-          title: ` ${result.data.data}`,
-          showConfirmButton: true,
-        }).then((result) => {
-          if (result.isConfirmed) {
-            Router.reload(window.location.pathname);
-          }
-        });
-      } else {
-        Swal.fire({
-          text: ` ${result.data.message}`,
-          showConfirmButton: true,
+          title: ` ${result.data}`,
         });
       }
     } catch (err) {
@@ -350,6 +200,49 @@ export default function Pickpack({ DeliveryID }) {
         icon: "error",
         showConfirmButton: true,
       });
+    }
+  };
+
+  // check if pick detail is valid
+  // check if the pick quantity equals deliveryQTY, if not inform user
+  // call prepareOjectForSaving() to prepare the request body for save pickdetail
+  // call toSave() to save
+  const handleSave = async (value, formikFunctions) => {
+    if (formikFunctions.isValid === false) {
+      Swal.fire({
+        title: `Please fix the errors before saving the data `,
+      });
+      return;
+    }
+
+    let complete = true;
+
+    value.orderProduct.map((item, index) => {
+      if (item.onHandProduct.length !== 0) {
+        const sumOfPickQTY = item.onHandProduct[0].QtyByProductStatus.reduce(
+          (pre, current) => pre + current.PickQTY,
+          0
+        );
+        if (sumOfPickQTY !== item.DeliveryQTY) {
+          complete = false;
+        }
+      }
+    });
+
+    if (complete === false) {
+      Swal.fire({
+        title: "pickQTY is less than the delivery QTY",
+        showCancelButton: true,
+        showConfirmButton: true,
+      }).then(async (result) => {
+        if (result.isConfirmed) {
+          const submitObject = prepareOjectForSaving(value, formikFunctions);
+          await toSave(submitObject);
+        }
+      });
+    } else {
+      const submitObject = prepareOjectForSaving(value, formikFunctions);
+      await toSave(submitObject);
     }
   };
 
@@ -459,12 +352,16 @@ export default function Pickpack({ DeliveryID }) {
               />
             </Grid>
             <Grid item xs={12}>
-              <CustomDataGridPickPack
-                inventoryList={values.onHandProduct[0].QtyByProductStatus}
-                itemValue={values}
-                formikFunction={formikFunctions}
-                orderProductIndex={index}
-              />
+              {values.onHandProduct.length !== 0 ? (
+                <CustomDataGridPickPack
+                  inventoryList={values.onHandProduct[0].QtyByProductStatus}
+                  itemValue={values}
+                  formikFunction={formikFunctions}
+                  orderProductIndex={index}
+                />
+              ) : (
+                ""
+              )}
             </Grid>
           </Grid>
         </Grid>
@@ -482,39 +379,33 @@ export default function Pickpack({ DeliveryID }) {
           ...PickPackDetail,
         }}
         validationSchema={createValidationSchama()}
-        onSubmit={async (values) => {
+        onSubmit={async (values, others) => {
           // setSpiner(true);
-          console.log("submitting");
-          try {
-            const result = await update_delivery(values);
-            setSpiner(false);
-            if (result.status >= 200 || result.status <= 299) {
-              Swal.fire({
-                title: `DELIVERY# : ${result.data.data}`,
-
-                showConfirmButton: true,
-              }).then((result) => {
-                if (result.isConfirmed) {
-                  Router.reload(window.location.pathname);
-                }
-              });
-            }
-          } catch (err) {
-            setSpiner(false);
-            Swal.fire({
-              title: `SOMETHING WENT WRONG `,
-              text: err,
-              icon: "error",
-              showConfirmButton: true,
-            });
-          }
+          //   try {
+          //     const result = await update_delivery(values);
+          //     setSpiner(false);
+          //     if (result.status >= 200 || result.status <= 299) {
+          //       Swal.fire({
+          //         title: `DELIVERY# : ${result.data.data}`,
+          //         showConfirmButton: true,
+          //       }).then((result) => {
+          //         if (result.isConfirmed) {
+          //           Router.reload(window.location.pathname);
+          //         }
+          //       });
+          //     }
+          //   } catch (err) {
+          //     setSpiner(false);
+          //     Swal.fire({
+          //       title: `SOMETHING WENT WRONG `,
+          //       text: err,
+          //       icon: "error",
+          //       showConfirmButton: true,
+          //     });
+          //   }
         }}>
         {({ values, ...formikFunctions }) => {
-          console.log(
-            formikFunctions.getFieldMeta(
-              `orderProduct[0].onHandProduct[0].QtyByProductStatus`
-            )
-          );
+          console.log(values);
           return (
             <Form>
               <Container>
@@ -641,20 +532,20 @@ export default function Pickpack({ DeliveryID }) {
                             </Grid>
 
                             <Grid item>
-                              <SubmitButtom
-                                variant="contained"
-                                size="large"
-                                sx={{ color: "red" }}>
-                                save
-                              </SubmitButtom>
-                            </Grid>
-
-                            <Grid item>
                               <Button
                                 variant="contained"
                                 size="large"
-                                onClick={handleRelease}>
-                                Packing
+                                sx={{ color: "red" }}
+                                onClick={() =>
+                                  handleSave(values, formikFunctions)
+                                }>
+                                save
+                              </Button>
+                            </Grid>
+
+                            <Grid item>
+                              <Button variant="contained" size="large">
+                                prepare packing
                               </Button>
                             </Grid>
                           </Grid>
@@ -677,3 +568,170 @@ export default function Pickpack({ DeliveryID }) {
     </>
   );
 }
+
+// *************************************render datagrid to show the available stock**************************
+const CustomDataGridPickPack = ({
+  inventoryList,
+  itemValue,
+  formikFunction,
+  orderProductIndex,
+}) => {
+  inventoryList = inventoryList.map((item, index) => ({ ...item, id: index }));
+  const columns = [
+    // {
+    //   field: "id",
+    //   headerName: "index",
+    //   headerClassName: "datagridHeader",
+    //   align: "center",
+    //   headerAlign: "center",
+    //   flex: 0.8,
+    // },
+    {
+      field: "BurnOption",
+      headerName: "BurnOption",
+      headerClassName: "datagridHeader",
+      align: "center",
+      headerAlign: "center",
+      flex: 1,
+    },
+    {
+      field: "CodeVersion",
+      headerName: "CodeVersion",
+      headerClassName: "datagridHeader",
+      align: "center",
+      headerAlign: "center",
+      flex: 2,
+    },
+    {
+      field: "Marked",
+      headerName: "Marked",
+      headerClassName: "datagridHeader",
+      align: "center",
+      headerAlign: "center",
+      flex: 0.5,
+    },
+    {
+      field: "DateCode",
+      headerName: "DateCode",
+      headerClassName: "datagridHeader",
+      align: "center",
+      headerAlign: "center",
+      flex: 1,
+    },
+    {
+      field: "LotNumber",
+      headerName: "Lot",
+      headerClassName: "datagridHeader",
+      align: "center",
+      headerAlign: "center",
+      flex: 1,
+    },
+    {
+      field: "Location",
+      headerName: "Location",
+      headerClassName: "datagridHeader",
+      align: "center",
+      headerAlign: "center",
+      flex: 0.8,
+    },
+    {
+      field: "QTY",
+      headerName: "Ava QTY",
+      headerClassName: "datagridHeader",
+      align: "center",
+      headerAlign: "center",
+      flex: 0.8,
+    },
+    {
+      field: "PickQTY",
+      headerName: "PickQTY",
+      headerClassName: "datagridHeader",
+      align: "center",
+      headerAlign: "center",
+      flex: 1,
+      editable: true,
+      type: "number",
+    },
+  ];
+
+  const getError = () => {
+    const fieldError = formikFunction.getFieldMeta(
+      `orderProduct[${orderProductIndex}].onHandProduct[0].QtyByProductStatus`
+    );
+
+    if (fieldError.error) {
+      return (
+        <>
+          <List>
+            {fieldError.error.map((item, index) => (
+              <ListItem>
+                <CircleIcon sx={{ fontSize: 8, color: "red" }} />
+                <Typography sx={{ color: "red", paddingLeft: 2 }}>
+                  {`Index ${index + 1}- ${Object.keys(item)[0]} : ${
+                    Object.values(item)[0]
+                  }`}
+                </Typography>
+              </ListItem>
+            ))}
+          </List>
+        </>
+      );
+    }
+  };
+
+  return (
+    <>
+      <Box
+        sx={{
+          height: 300,
+          width: "100%",
+          overflow: "auto",
+          "& .matching": {
+            backgroundColor: "#E5F6DF",
+          },
+          "& .notMatching": {
+            backgroundColor: "yellow",
+          },
+        }}>
+        <DataGrid
+          getRowClassName={(params) => {
+            const rowStockStatus =
+              params.row.BurnOption +
+              params.row.CodeVersion +
+              params.row.Marked;
+
+            const requestStockStatus =
+              itemValue.BurnOption + itemValue.CodeVersion + itemValue.Marked;
+
+            if (rowStockStatus == requestStockStatus) {
+              return "matching";
+            }
+          }}
+          headerHeight={50}
+          rowHeight={60}
+          columns={columns}
+          rows={inventoryList}
+          hideFooter
+          disableSelectionOnClick
+          onCellEditCommit={(params) => {
+            formikFunction.setFieldValue(
+              `orderProduct[${orderProductIndex}].onHandProduct[0].QtyByProductStatus[${params.id}].PickQTY`,
+              params.value
+            );
+          }}
+          isCellEditable={(params) => {
+            if (
+              params.row.BurnOption === itemValue.BurnOption &&
+              params.row.CodeVersion === itemValue.CodeVersion &&
+              params.row.Marked === itemValue.Marked
+            ) {
+              return true;
+            }
+            return false;
+          }}
+        />
+      </Box>
+      {getError()}
+    </>
+  );
+};
