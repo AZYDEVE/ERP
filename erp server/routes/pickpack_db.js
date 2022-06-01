@@ -234,6 +234,13 @@ FROM
         });
       });
 
+      newObj.orderProduct.map((item, index) => {
+        item.onHandProduct[0].QtyByProductStatus =
+          item.onHandProduct[0].QtyByProductStatus.filter(
+            (obj) => obj !== null
+          );
+      });
+
       console.log(newObj);
       res.status(200).json(newObj);
     })

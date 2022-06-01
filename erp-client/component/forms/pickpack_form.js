@@ -98,28 +98,28 @@ export default function Pickpack({ DeliveryID }) {
               }
             ),
           Marked: yup.string().required("required"),
-          onHandProduct: yup.array().of(
-            yup.object().shape({
-              QtyByProductStatus: yup.array().of(
-                yup.object().shape({
-                  PickQTY: yup
-                    .number()
-                    .required("required")
-                    .test(
-                      "is it greater availableQTY",
-                      "Cannot be greater than Available QTY",
-                      (value, schema) => {
-                        if (value > schema.from[0].value.QTY) {
-                          return false;
-                        } else {
-                          return true;
-                        }
-                      }
-                    ),
-                })
-              ),
-            })
-          ),
+          //   onHandProduct: yup.array().of(
+          //     yup.object().shape({
+          //       QtyByProductStatus: yup.array().of(
+          //         yup.object().shape({
+          //           PickQTY: yup
+          //             .number()
+          //             .required("required")
+          //             .test(
+          //               "is it greater availableQTY",
+          //               "Cannot be greater than Available QTY",
+          //               (value, schema) => {
+          //                 if (value > schema.from[0].value.QTY) {
+          //                   return false;
+          //                 } else {
+          //                   return true;
+          //                 }
+          //               }
+          //             ),
+          //         })
+          //       ),
+          //     })
+          //   ),
         })
       ),
     });
@@ -361,6 +361,7 @@ export default function Pickpack({ DeliveryID }) {
                   itemValue={values}
                   formikFunction={formikFunctions}
                   orderProductIndex={index}
+                  formikValues={formikValues}
                 />
               ) : (
                 ""
@@ -578,6 +579,7 @@ const CustomDataGridPickPack = ({
   itemValue,
   formikFunction,
   orderProductIndex,
+  formikValues,
 }) => {
   inventoryList = inventoryList.map((item, index) => ({ ...item, id: index }));
   const columns = [
@@ -723,6 +725,51 @@ const CustomDataGridPickPack = ({
               `orderProduct[${orderProductIndex}].onHandProduct[0].QtyByProductStatus[${params.id}].PickQTY`,
               params.value
             );
+
+            // below dynamically change the available QTY based on PickQTY
+            const originalPickQTY =
+              formikFunction.initialValues.orderProduct[orderProductIndex]
+                .onHandProduct[0].QtyByProductStatus[params.id].PickQTY;
+            const qtyChange = originalPickQTY - params.value;
+
+            const currentStockItem =
+              formikFunction.initialValues.orderProduct[orderProductIndex]
+                .onHandProduct[0].QtyByProductStatus[params.id];
+
+            const currentStockStr =
+              currentStockItem.ProductID +
+              currentStockItem.BurnOption +
+              currentStockItem.CodeVersion +
+              currentStockItem.Marked +
+              currentStockItem.Location +
+              currentStockItem.LotNumber +
+              currentStockItem.DateCode;
+
+            formikValues.orderProduct.map((item, index) => {
+              item.onHandProduct[0].QtyByProductStatus.map(
+                (stock, stockIndex) => {
+                  const formItemsStr =
+                    stock.ProductID +
+                    stock.BurnOption +
+                    stock.CodeVersion +
+                    stock.Marked +
+                    stock.Location +
+                    stock.LotNumber +
+                    stock.DateCode;
+
+                  if (currentStockStr === formItemsStr) {
+                    const initialAvailableQTY =
+                      formikFunction.initialValues.orderProduct[index]
+                        .onHandProduct[0].QtyByProductStatus[stockIndex].QTY;
+                    const newAvailableQTY = initialAvailableQTY + qtyChange;
+                    formikFunction.setFieldValue(
+                      `orderProduct[${index}].onHandProduct[0].QtyByProductStatus[${stockIndex}].QTY`,
+                      newAvailableQTY
+                    );
+                  }
+                }
+              );
+            });
           }}
           isCellEditable={(params) => {
             if (
