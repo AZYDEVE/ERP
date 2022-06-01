@@ -162,12 +162,14 @@ export default function Pickpack({ DeliveryID }) {
 
     const pickItems = [];
     value.orderProduct.map((item) => {
+      console.log(item);
       item.onHandProduct[0].QtyByProductStatus.map((pickItem) => {
         const obj = {};
         if (pickItem.PickQTY > 0) {
           obj = { ...pickItem };
           obj[`DeliveryItemID`] = item.DeliveryItemID;
-          obj[`DeliveryID`] = item.DeliveryID;
+          obj[`DeliveryID`] = value.DeliveryID;
+          delete obj.QTY;
           pickItems.push(obj);
         }
       });
@@ -175,10 +177,11 @@ export default function Pickpack({ DeliveryID }) {
 
     const submitOject = {
       ...value,
-      pickItems: pickItems,
+      PickItems: pickItems,
     };
 
     delete submitOject.orderProduct;
+    console.log(submitOject);
     return submitOject;
   };
 
@@ -667,9 +670,11 @@ const CustomDataGridPickPack = ({
               <ListItem>
                 <CircleIcon sx={{ fontSize: 8, color: "red" }} />
                 <Typography sx={{ color: "red", paddingLeft: 2 }}>
+                  {/* {console.log(fieldError)}
                   {`Index ${index + 1}- ${Object.keys(item)[0]} : ${
                     Object.values(item)[0]
-                  }`}
+                  }`} */}
+                  {`${item}`}
                 </Typography>
               </ListItem>
             ))}

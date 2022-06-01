@@ -161,7 +161,7 @@ FROM
           LIMIT 1)
           AND delivery.Status IN ('shipped' , 'picking', 'picked', 'packed') UNION ALL SELECT 
       pk.ProductID AS ProductID,
-          pk.PickQTY * - 1 AS QTY,
+          0 AS QTY,
           pk.Location AS Location,
           pk.BurnOption AS BurnOption,
           pk.Marked AS Marked,
@@ -184,9 +184,9 @@ FROM
           0 AS PickQTY
   FROM
       inventory_db.inventory_snapshot AS ivs) alltrans
-  GROUP BY alltrans.ProductID , alltrans.Location , alltrans.BurnOption , alltrans.Marked , alltrans.CodeVersion , alltrans.LotNumber , alltrans.DateCode) aggbystatus
+  GROUP BY alltrans.ProductID , alltrans.Location , alltrans.BurnOption , alltrans.Marked , alltrans.CodeVersion , alltrans.LotNumber , alltrans.DateCode ) aggbystatus
   WHERE
-      (aggbystatus.SumAggStatus > 0)
+      (aggbystatus.SumAggStatus > 0 OR SumAggStatusPickQTY>0)
   GROUP BY aggbystatus.ProductID) aggbyproduct
   LEFT JOIN (SELECT 
       master_db.product.ProductID AS ProductID,
@@ -212,8 +212,30 @@ FROM
         );
       });
 
-      console.log(deliveryInfo);
-      res.status(200).json(deliveryInfo);
+      const newObj = JSON.parse(JSON.stringify(deliveryInfo));
+      console.log("newobj", newObj);
+      deliveryInfo.orderProduct.map((item, itemIndex) => {
+        item.onHandProduct[0].QtyByProductStatus.map((stock, stockIndex) => {
+          if (
+            stock.BurnOption !== item.BurnOption ||
+            stock.CodeVersion !== item.CodeVersion ||
+            stock.Marked !== item.Marked
+          ) {
+            if (stock.PickQTY > 0) {
+              newObj.orderProduct[
+                itemIndex
+              ].onHandProduct[0].QtyByProductStatus[stockIndex].PickQTY = 0;
+            }
+            if (stock.QTY <= 0) {
+              delete newObj.orderProduct[itemIndex].onHandProduct[0]
+                .QtyByProductStatus[stockIndex];
+            }
+          }
+        });
+      });
+
+      console.log(newObj);
+      res.status(200).json(newObj);
     })
     .catch((err) => {
       console.log(err);
@@ -263,8 +285,22 @@ router.post("/savepickpack", async (req, res) => {
     const connection = await dbp.getConnection();
     try {
       await connection.beginTransaction();
-      const UpdatePickTime = `UPDATE sales_db.delivery SET PickTime = current_timestamp(3) WHERE DeliveryID = ${req.body.DeliveryID} `;
-      await connection.query(UpdatePickTime);
+      const UpdateDeliveryPickTimeAndStatus = `UPDATE sales_db.delivery SET PickTime = current_timestamp(3), Status ="${req.body.Status}" WHERE DeliveryID = ${req.body.DeliveryID} `;
+      await connection.query(UpdateDeliveryPickTimeAndStatus);
+      const deletePackDetail = `DELETE FROM sales_db.pack WHERE DeliveryID = ${req.body.DeliveryID}`;
+      await connection.query(deletePackDetail);
+      const deletePickDetail = `DELETE FROM sales_db.pick WHERE DeliveryID=${req.body.DeliveryID}`;
+      await connection.query(deletePickDetail);
+
+      req.body.PickItems.map(async (item, index) => {
+        await connection.query(
+          `INSERT INTO sales_db.pick(${Object.keys(
+            item
+          ).toString()}) VALUES (?)`,
+          [Object.values(item)]
+        );
+      });
+
       await connection.commit();
     } catch (err) {
       console.log(err);
@@ -273,6 +309,7 @@ router.post("/savepickpack", async (req, res) => {
     }
   } catch (err) {
     console.log(err);
+    res.status(500).json(err);
   }
   res.status(200).json(`picking detail is saved`);
 });
