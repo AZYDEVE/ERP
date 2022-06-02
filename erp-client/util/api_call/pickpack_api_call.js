@@ -28,6 +28,21 @@ export const delete_pickpack_set_delivery_status_to_block = async (
   }
 };
 
+export const delete_pack_set_delivery_status_to_picking = async (
+  DeliveryID
+) => {
+  try {
+    const result = await axios.post(
+      process.env.NEXT_PUBLIC_SERVER_HOST + "/pickpack/deletePack",
+      DeliveryID
+    );
+
+    return result;
+  } catch (err) {
+    throw new Error(err);
+  }
+};
+
 export const save_pick_pack = async (pickPackDetail) => {
   try {
     const result = await axios.post(

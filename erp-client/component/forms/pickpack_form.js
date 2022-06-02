@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import {
   Container,
   Grid,
-  TextField,
   Typography,
   Button,
   Box,
@@ -22,10 +21,10 @@ import Router from "next/router";
 import RingLoader from "react-spinners/RingLoader";
 import Swal from "sweetalert2";
 
-import DeleteIcon from "@mui/icons-material/Delete";
 import CustomSelect from "./formComponent/select";
 import {
   delete_pickpack_set_delivery_status_to_block,
+  delete_pack_set_delivery_status_to_picking,
   get_Delivery_for_PickAndPack,
   save_pick_pack,
 } from "../../util/api_call/pickpack_api_call";
@@ -39,7 +38,6 @@ export default function Pickpack({ DeliveryID }) {
     const result = await get_Delivery_for_PickAndPack(DeliveryID);
 
     if (result.data) {
-      console.log(result.data);
       setPickPackDetail(result.data);
     }
   }, []);
@@ -61,7 +59,7 @@ export default function Pickpack({ DeliveryID }) {
             .required("required")
             .test(
               "checkPickQTY",
-              "PickQTY is more than DeliveryQTY",
+              "PickQTY is more than the DeliveryQTY",
               (value, schema) => {
                 const listOfPickQTY =
                   schema.from[0].value.onHandProduct[0].QtyByProductStatus;
@@ -72,9 +70,8 @@ export default function Pickpack({ DeliveryID }) {
 
                 if (totalPick > value) {
                   return false;
-                } else {
-                  return true;
                 }
+                return true;
               }
             ),
           ProductID: yup.number().required("required"),
@@ -98,35 +95,35 @@ export default function Pickpack({ DeliveryID }) {
               }
             ),
           Marked: yup.string().required("required"),
-          //   onHandProduct: yup.array().of(
-          //     yup.object().shape({
-          //       QtyByProductStatus: yup.array().of(
-          //         yup.object().shape({
-          //           PickQTY: yup
-          //             .number()
-          //             .required("required")
-          //             .test(
-          //               "is it greater availableQTY",
-          //               "Cannot be greater than Available QTY",
-          //               (value, schema) => {
-          //                 if (value > schema.from[0].value.QTY) {
-          //                   return false;
-          //                 } else {
-          //                   return true;
-          //                 }
-          //               }
-          //             ),
-          //         })
-          //       ),
-          //     })
-          //   ),
+          onHandProduct: yup.array().of(
+            yup.object().shape({
+              QtyByProductStatus: yup.array().of(
+                yup.object().shape({
+                  QTY: yup
+                    .number()
+                    .required("required")
+                    .test(
+                      "check negative",
+                      "Available QTY can not be negative",
+                      (value, schema) => {
+                        if (schema.from[0].value.QTY < 0) {
+                          return false;
+                        } else {
+                          return true;
+                        }
+                      }
+                    ),
+                })
+              ),
+            })
+          ),
         })
       ),
     });
   };
 
   // delete the picking and packing detail and change the delivery status to Block
-  const handleDelete = async () => {
+  const handleDeletePickings = async () => {
     try {
       const result = await delete_pickpack_set_delivery_status_to_block(
         DeliveryID
@@ -153,16 +150,38 @@ export default function Pickpack({ DeliveryID }) {
     }
   };
 
+  const handleDeletePack = async (formikFunction, formikValues) => {
+    setStatus(formikFunction, formikValues, "picking");
+
+    try {
+      const result = await delete_pack_set_delivery_status_to_picking(
+        DeliveryID
+      );
+      setSpiner(false);
+      if (result.status >= 200 || result.status <= 299) {
+        Swal.fire({
+          title: ` ${result.data.data}`,
+          showConfirmButton: true,
+        }).then((result) => {
+          if (result.isConfirmed) {
+          }
+        });
+      }
+    } catch (err) {
+      setSpiner(false);
+      Swal.fire({
+        title: `SOMETHING WENT WRONG `,
+        text: err,
+        icon: "error",
+        showConfirmButton: true,
+      });
+    }
+  };
+
   // prepare the request body to save pick detail
   const prepareOjectForSaving = (value, formikFunctions) => {
-    if (value.Status === "released") {
-      formikFunctions.setFieldValue("Status", "picking");
-      value.Status = "picking";
-    }
-
     const pickItems = [];
     value.orderProduct.map((item) => {
-      console.log(item);
       item.onHandProduct[0].QtyByProductStatus.map((pickItem) => {
         const obj = {};
         if (pickItem.PickQTY > 0) {
@@ -181,7 +200,7 @@ export default function Pickpack({ DeliveryID }) {
     };
 
     delete submitOject.orderProduct;
-    console.log(submitOject);
+
     return submitOject;
   };
 
@@ -210,7 +229,7 @@ export default function Pickpack({ DeliveryID }) {
   // check if the pick quantity equals deliveryQTY, if not inform user
   // call prepareOjectForSaving() to prepare the request body for save pickdetail
   // call toSave() to save
-  const handleSave = async (value, formikFunctions) => {
+  const handleSave = async (value, formikFunctions, status) => {
     if (formikFunctions.isValid === false) {
       Swal.fire({
         title: `Please fix the errors before saving the data `,
@@ -239,14 +258,25 @@ export default function Pickpack({ DeliveryID }) {
         showConfirmButton: true,
       }).then(async (result) => {
         if (result.isConfirmed) {
-          const submitObject = prepareOjectForSaving(value, formikFunctions);
+          const saveValue = setStatus(formikFunctions, value, status);
+          const submitObject = prepareOjectForSaving(
+            saveValue,
+            formikFunctions
+          );
           await toSave(submitObject);
         }
       });
     } else {
-      const submitObject = prepareOjectForSaving(value, formikFunctions);
+      const saveValue = setStatus(formikFunctions, value, status);
+      const submitObject = prepareOjectForSaving(saveValue, formikFunctions);
       await toSave(submitObject);
     }
+  };
+
+  const setStatus = (formikFunction, formikValue, status) => {
+    formikFunction.setFieldValue("Status", status);
+    formikValue.Status = status;
+    return formikValue;
   };
 
   if (!PickPackDetail) {
@@ -526,31 +556,70 @@ export default function Pickpack({ DeliveryID }) {
                             mt={2}
                             spacing={2}>
                             <Grid item>
-                              <Button
-                                variant="contained"
-                                size="large"
-                                sx={{ color: "red" }}
-                                onClick={handleDelete}>
-                                <DeleteIcon />
-                              </Button>
+                              {values.Status === "released" ||
+                              values.Status === "picking" ? (
+                                <Button
+                                  variant="contained"
+                                  size="large"
+                                  sx={{ color: "red" }}
+                                  onClick={handleDeletePickings}>
+                                  delete picking
+                                </Button>
+                              ) : (
+                                <Grid item>
+                                  <Button
+                                    variant="contained"
+                                    size="large"
+                                    sx={{ color: "red" }}
+                                    onClick={() => {
+                                      handleDeletePack(formikFunctions, values);
+                                    }}>
+                                    remove packing
+                                  </Button>
+                                </Grid>
+                              )}
                             </Grid>
 
                             <Grid item>
                               <Button
                                 variant="contained"
                                 size="large"
-                                sx={{ color: "red" }}
                                 onClick={() =>
-                                  handleSave(values, formikFunctions)
+                                  handleSave(values, formikFunctions, "picking")
                                 }>
                                 save
                               </Button>
                             </Grid>
 
                             <Grid item>
-                              <Button variant="contained" size="large">
-                                prepare packing
-                              </Button>
+                              {values.Status === "released" ||
+                              values.Status === "picking" ? (
+                                <Button
+                                  variant="contained"
+                                  size="large"
+                                  onClick={() => {
+                                    handleSave(
+                                      values,
+                                      formikFunctions,
+                                      "picked"
+                                    );
+                                  }}>
+                                  prepare packing
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="contained"
+                                  size="large"
+                                  onClick={() => {
+                                    handleSave(
+                                      values,
+                                      formikFunctions,
+                                      "packed"
+                                    );
+                                  }}>
+                                  Finish packing
+                                </Button>
+                              )}
                             </Grid>
                           </Grid>
                         </>
@@ -581,6 +650,13 @@ const CustomDataGridPickPack = ({
   orderProductIndex,
   formikValues,
 }) => {
+  const checkStatus = () => {
+    const statusMeta = formikFunction.getFieldMeta("Status");
+    if (statusMeta.value === "released" || statusMeta.value === "picking") {
+      return true;
+    }
+    return false;
+  };
   inventoryList = inventoryList.map((item, index) => ({ ...item, id: index }));
   const columns = [
     // {
@@ -654,12 +730,12 @@ const CustomDataGridPickPack = ({
       align: "center",
       headerAlign: "center",
       flex: 1,
-      editable: true,
+      editable: checkStatus(),
       type: "number",
     },
   ];
 
-  const getError = () => {
+  const getStockAvailabilityError = () => {
     const fieldError = formikFunction.getFieldMeta(
       `orderProduct[${orderProductIndex}].onHandProduct[0].QtyByProductStatus`
     );
@@ -668,18 +744,20 @@ const CustomDataGridPickPack = ({
       return (
         <>
           <List>
-            {fieldError.error.map((item, index) => (
-              <ListItem>
-                <CircleIcon sx={{ fontSize: 8, color: "red" }} />
-                <Typography sx={{ color: "red", paddingLeft: 2 }}>
-                  {/* {console.log(fieldError)}
-                  {`Index ${index + 1}- ${Object.keys(item)[0]} : ${
-                    Object.values(item)[0]
-                  }`} */}
-                  {`${item}`}
-                </Typography>
-              </ListItem>
-            ))}
+            {fieldError.error.map((item, index) =>
+              item != null ? (
+                <ListItem>
+                  <CircleIcon sx={{ fontSize: 8, color: "red" }} />
+                  <Typography sx={{ color: "red", paddingLeft: 2 }}>
+                    {`Index ${index + 1}- ${Object.keys(item)[0]} : ${
+                      Object.values(item)[0]
+                    }`}
+                  </Typography>
+                </ListItem>
+              ) : (
+                ""
+              )
+            )}
           </List>
         </>
       );
@@ -690,7 +768,7 @@ const CustomDataGridPickPack = ({
     <>
       <Box
         sx={{
-          height: 300,
+          height: 250,
           width: "100%",
           overflow: "auto",
           "& .matching": {
@@ -715,7 +793,7 @@ const CustomDataGridPickPack = ({
             }
           }}
           headerHeight={50}
-          rowHeight={60}
+          rowHeight={50}
           columns={columns}
           rows={inventoryList}
           hideFooter
@@ -724,6 +802,10 @@ const CustomDataGridPickPack = ({
             formikFunction.setFieldValue(
               `orderProduct[${orderProductIndex}].onHandProduct[0].QtyByProductStatus[${params.id}].PickQTY`,
               params.value
+            );
+
+            formikFunction.setFieldTouched(
+              `orderProduct[${orderProductIndex}].DeliveryQTY`
             );
 
             // below dynamically change the available QTY based on PickQTY
@@ -783,7 +865,7 @@ const CustomDataGridPickPack = ({
           }}
         />
       </Box>
-      {getError()}
+      {getStockAvailabilityError()}
     </>
   );
 };

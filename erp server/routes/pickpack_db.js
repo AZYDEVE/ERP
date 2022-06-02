@@ -278,6 +278,32 @@ router.post("/deletePickPack", async (req, res) => {
   }
 });
 
+router.post("/deletePack", async (req, res) => {
+  console.log(req.body);
+  const strDeletePacking = `DELETE FROM sales_db.pack WHERE DeliveryID=${req.body.DeliveryID}`;
+  const strDeliveryStatusBlock = `UPDATE sales_db.delivery SET Status ='picking' WHERE DeliveryID =${req.body.DeliveryID}`;
+
+  try {
+    const connection = await dbp.getConnection();
+    try {
+      await connection.beginTransaction();
+      await connection.query(strDeletePacking);
+      await connection.query(strDeliveryStatusBlock);
+      await connection.commit();
+      res.status(200).json({
+        data: `Set delivery ${req.body.DeliveryID} status to picking `,
+      });
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ data: err });
+    }
+  } catch (err) {
+    console.log(err);
+    console.log("errs");
+    res.status(500).json({ data: err });
+  }
+});
+
 router.post("/savepickpack", async (req, res) => {
   console.log(req.body);
 
