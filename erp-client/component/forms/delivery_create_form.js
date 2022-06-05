@@ -34,18 +34,20 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
 
   useEffect(async () => {
     const result = await get_available_stock_for_salesorder(salesOrderID);
+    console.log(result.data);
     if (result.data) {
       const availablility = {};
       result.data.map((item, index) => {
         availablility[item.ProductID] = item;
       });
+
       setAvailableProductList(availablility);
     }
   }, []);
 
   useEffect(async () => {
     const result = await get_Sales_OrderDetail_For_CreateDelivery(salesOrderID);
-
+    console.log(result);
     if (result.data) {
       setSalesOrderDetail(result.data);
     }
@@ -126,7 +128,6 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
             "checkIfSameProductInDelivery",
             "Duplicate items are in the delivery",
             (value, schema) => {
-              console.log(schema);
               let notDuplicate = true;
               if (value.DeliveryQTY > 0) {
                 const valueProductStr =
@@ -160,7 +161,22 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
     });
   };
 
-  const handleDeliveryQTY = (value, formikValues, formikFunctions) => {};
+  const assignSalesOrderStatus = (formikValue, formikFunction) => {
+    const completeDelivery = true;
+    formikValue.orderProduct.map((item, index) => {
+      if (item.DeliveryQTY - item.OpenQTY !== 0) {
+        completeDelivery = false;
+      }
+    });
+    if (completeDelivery === true) {
+      formikFunction.setFieldValue("Status", "delivered");
+      formikFunction.Value = "delivered";
+    } else {
+      formikFunction.setFieldValue("Status", "partial delivered");
+      formikFunction.Value = "partial delivered";
+    }
+    return formikValue;
+  };
 
   if (!availbleProductList || !salesOrderDetail) {
     return (
@@ -172,7 +188,7 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
 
   const getError = (formikFunction, index) => {
     const fieldError = formikFunction.getFieldMeta(`orderProduct[${index}]`);
-    console.log(fieldError);
+
     if (fieldError.error === "Duplicate items are in the delivery") {
       return (
         <>
@@ -313,7 +329,14 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
                   );
 
                   const sum = SameProduct.reduce((pre, cur) => {
-                    return pre + (isNaN(cur.DeliveryQTY) ? 0 : cur.DeliveryQTY);
+                    return (
+                      pre +
+                      (isNaN(cur.DeliveryQTY) ||
+                      cur.DeliveryQTY == null ||
+                      cur.DeliveryQTY == ""
+                        ? 0
+                        : cur.DeliveryQTY)
+                    );
                   }, 0);
 
                   const availableQTY =
@@ -356,7 +379,7 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
           availableStock: availbleProductList,
         }}
         validationSchema={createValidationSchama()}
-        onSubmit={async (values) => {
+        onSubmit={async (values, others) => {
           // setSpiner(true);
 
           const submitValues = { ...values };
@@ -372,7 +395,8 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
             });
           } else {
             try {
-              const result = await CREATE_DELIVERY(submitValues);
+              const submitOBJ = assignSalesOrderStatus(submitValues, others);
+              const result = await CREATE_DELIVERY(submitOBJ);
               setSpiner(false);
               if (result.status >= 200 || result.status <= 299) {
                 Swal.fire({
@@ -398,7 +422,6 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
           }
         }}>
         {({ values, ...formikFunctions }) => {
-          console.log(formikFunctions);
           return (
             <Form>
               <Container>

@@ -98,7 +98,7 @@ FROM
         JOIN
     master_db.customer Customer ON SO.CustomerID = Customer.CustomerID
 WHERE
-    SO.Status IN ('open' , 'partial deliver') ORDER BY SO.SalesOrderID`;
+    SO.Status IN ('open' , 'delivered','partial delivered') ORDER BY SO.SalesOrderID`;
 
   db.query(sqlGetOpenSalesList, (err, results, fields) => {
     if (err) {
@@ -352,44 +352,46 @@ router.post("/getSalesOrderAvaibility", (req, res) => {
   const param = req.body.salesOrderID;
 
   const sqlStr = `
-    SET @SNAPSHOTTIME := (SELECT TimeStamp FROM inventory_db.inventory_snapshot  LIMIT 1); 
-    SET @SALES_ORDER_PRODUCTID := (SELECT  group_concat( DISTINCT ProductID)FROM sales_db.sales_order_detail WHERE SalesOrderID = ${param}  );
-  
-    SELECT  product.ProductID, product.PartNumber, CAST(coalesce( SUM(QTY), 0 ) AS double) as AvailableQTY FROM
-         (SELECT ProductID, PartNumber  FROM master_db.product product WHERE FIND_IN_SET(ProductID, @SALES_ORDER_PRODUCTID) ) as product
-        LEFT JOIN
-        (SELECT 
-            ProductID, QTY
-        FROM
-            inventory_db.inventory_snapshot WHERE FIND_IN_SET(ProductID, @SALES_ORDER_PRODUCTID) UNION ALL SELECT 
-            ProductID, QTY
-        FROM
-            inventory_db.inventory_transaction 
-        WHERE
-            TimeStamp > @SNAPSHOTTIME AND FIND_IN_SET(ProductID, @SALES_ORDER_PRODUCTID) UNION ALL SELECT 
-            ProductID, ReceiveQTY AS QTY
-        FROM
-            po_db.receiving_document
-        WHERE
-            Timestamp > @SNAPSHOTTIME AND FIND_IN_SET(ProductID, @SALES_ORDER_PRODUCTID) UNION ALL SELECT 
-            ProductID, PickQTY * - 1 AS QTY
-        FROM
-            sales_db.pick
-        WHERE
-            ShipDateTime > @SNAPSHOTTIME
-                AND Status = 'shipped' AND FIND_IN_SET(ProductID, @SALES_ORDER_PRODUCTID) UNION ALL SELECT 
-            ProductID, DeliveryQTY * - 1 AS QTY
-        FROM
-            sales_db.delivery_detail
-        WHERE
-            Status = 'open' AND FIND_IN_SET(ProductID, @SALES_ORDER_PRODUCTID)) AS agg ON product.ProductID = agg.ProductID
-    GROUP BY ProductID;`;
+  SET @SNAPSHOTTIME := (SELECT TimeStamp FROM inventory_db.inventory_snapshot  LIMIT 1); 
+
+  SET @SALES_ORDER_PRODUCTID := (SELECT  group_concat( DISTINCT ProductID)FROM sales_db.sales_order_detail WHERE SalesOrderID = ${param}  );
+
+  SELECT  product.ProductID, product.PartNumber, CAST(coalesce( SUM(QTY), 0 ) AS double) as AvailableQTY FROM
+       (SELECT ProductID, PartNumber  FROM master_db.product product WHERE FIND_IN_SET(ProductID, @SALES_ORDER_PRODUCTID) ) as product
+      LEFT JOIN
+      (SELECT 
+          ProductID, QTY
+      FROM
+          inventory_db.inventory_snapshot WHERE FIND_IN_SET(ProductID, @SALES_ORDER_PRODUCTID) UNION ALL SELECT 
+          ProductID, QTY
+      FROM
+          inventory_db.inventory_transaction 
+      WHERE
+          TimeStamp > @SNAPSHOTTIME AND FIND_IN_SET(ProductID, @SALES_ORDER_PRODUCTID) UNION ALL SELECT 
+          ProductID, ReceiveQTY AS QTY
+      FROM
+          po_db.receiving_document
+      WHERE
+          Timestamp > @SNAPSHOTTIME AND FIND_IN_SET(ProductID, @SALES_ORDER_PRODUCTID) UNION ALL SELECT 
+          ProductID, PickQTY * - 1 AS QTY
+      FROM
+          sales_db.pick p LEFT JOIN sales_db.delivery d ON p.DeliveryID = d.DeliveryID
+      WHERE
+          p.TimeStamp > @SNAPSHOTTIME
+              AND d.Status = 'shipped' AND FIND_IN_SET(ProductID, @SALES_ORDER_PRODUCTID) UNION ALL SELECT 
+          ProductID, DeliveryQTY * - 1 AS QTY
+      FROM
+          sales_db.delivery_detail
+      WHERE
+          Status = 'open' AND FIND_IN_SET(ProductID, @SALES_ORDER_PRODUCTID)) AS agg ON product.ProductID = agg.ProductID
+  GROUP BY ProductID;`;
 
   db.query(sqlStr, (err, results, fields) => {
     if (err) {
       console.log(err);
       res.status(500).send("something went wrong");
     }
+    console.log(results);
     res.status(200).json(results[2]);
   });
 });

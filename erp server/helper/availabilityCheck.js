@@ -27,10 +27,10 @@ const checkAvailabilityByItems = async (ProductID) => {
           Timestamp > @SNAPSHOTTIME AND  ProductID IN (${ProductID.toString()})  UNION ALL SELECT 
           ProductID, PickQTY * - 1 AS QTY
       FROM
-          sales_db.pick
+          sales_db.pick s LEFT JOIN sales_db.delivery d ON s.DeliveryID = d.DeliveryID 
       WHERE
-          ShipDateTime > @SNAPSHOTTIME
-              AND Status = 'shipped' AND  ProductID IN (${ProductID.toString()})  UNION ALL SELECT 
+          s.TimeStamp > @SNAPSHOTTIME
+              AND d.Status = 'shipped' AND  ProductID IN (${ProductID.toString()})  UNION ALL SELECT 
           ProductID, DeliveryQTY * - 1 AS QTY
       FROM
           sales_db.delivery_detail

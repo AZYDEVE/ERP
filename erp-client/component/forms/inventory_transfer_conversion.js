@@ -32,7 +32,7 @@ export default function InventoryTransferConversion({ itemInfo }) {
         .string()
         .test("checkifRequired", "required", (value, schema) => {
           if (
-            schema.from[0].value.BurnOption !== "None" &&
+            schema.from[0].value.BurnOption !== "NONE" &&
             (value == "" || value == undefined)
           ) {
             return false;

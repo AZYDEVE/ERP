@@ -11,7 +11,7 @@ router.post("/getSalesOrderDetailForCreateDelivery", (req, res) => {
   const param = req.body;
   console.log(param);
   const sqlSOStr = `SELECT SalesOrderID, Company_name_ch, so.CustomerID, so.CustomerOrderNumber, 
-    DATE_FORMAT(CURDATE(), "%Y-%m-%d") as CreateDate, '' AS ShipDate, so.DeliveryAddress, so.DeliveryZip, 'block' as Status,
+    DATE_FORMAT(CURDATE(), "%Y-%m-%d") as CreateDate, '' AS ShipDate, so.DeliveryAddress, so.DeliveryZip, so.Status,
     '' as Remark, so.TimeStamp 
     FROM 
     sales_db.sales_order so
@@ -73,7 +73,6 @@ router.post("/createDelivery", async (req, res) => {
     );
 
     if (saleOrderTime[0][0].TimeStamp !== param.TimeStamp) {
-      console.log("err!!!!!!! time");
       res
         .status(250)
         .json({ data: "sales order is updated during delivery creation" });
@@ -110,7 +109,7 @@ router.post("/createDelivery", async (req, res) => {
 
     await connection.beginTransaction();
     await connection.query(
-      `UPDATE sales_db.sales_order SET Status="partial deliver" WHERE SalesOrderID = ${param.SalesOrderID} `
+      `UPDATE sales_db.sales_order SET Status="${param.Status}" WHERE SalesOrderID = ${param.SalesOrderID} `
     );
 
     const delivery = {
@@ -118,7 +117,7 @@ router.post("/createDelivery", async (req, res) => {
       CreateDate: param.CreateDate,
       ShipDate: param.ShipDate,
       Remark: param.Remark,
-      Status: param.Status,
+      Status: "block",
     };
 
     const createDelivery = `INSERT INTO sales_db.delivery( ${Object.keys(

@@ -8,12 +8,16 @@ import {
   Backdrop,
   ListItem,
   List,
+  Divider,
+  TextField,
+  MenuItem,
 } from "@mui/material";
 import CircleIcon from "@mui/icons-material/Circle";
-
+import AddIcon from "@mui/icons-material/Add";
+import RemoveIcon from "@mui/icons-material/Remove";
 import TextFieldWrapper from "./formComponent/field";
 import DatePicker from "./formComponent/datePicker";
-import SubmitButtom from "./formComponent/submitButton";
+
 import { FieldArray, Form, Formik } from "formik";
 import * as yup from "yup";
 
@@ -22,6 +26,7 @@ import RingLoader from "react-spinners/RingLoader";
 import Swal from "sweetalert2";
 
 import CustomSelect from "./formComponent/select";
+import CustomAutocomplete from "./formComponent/autoComplete";
 import {
   delete_pickpack_set_delivery_status_to_block,
   delete_pack_set_delivery_status_to_picking,
@@ -29,6 +34,9 @@ import {
   save_pick_pack,
 } from "../../util/api_call/pickpack_api_call";
 import { DataGrid } from "@mui/x-data-grid";
+import GridBreak from "./formComponent/gridBreaker";
+
+import { useFormikContext, useField } from "formik";
 
 export default function Pickpack({ DeliveryID }) {
   const [PickPackDetail, setPickPackDetail] = useState(null);
@@ -41,6 +49,14 @@ export default function Pickpack({ DeliveryID }) {
       setPickPackDetail(result.data);
     }
   }, []);
+
+  const reloadData = async () => {
+    const result = await get_Delivery_for_PickAndPack(DeliveryID);
+
+    if (result.data) {
+      setPickPackDetail(result.data);
+    }
+  };
 
   // validation schema for formik to validate user input
   const createValidationSchama = () => {
@@ -164,6 +180,7 @@ export default function Pickpack({ DeliveryID }) {
           showConfirmButton: true,
         }).then((result) => {
           if (result.isConfirmed) {
+            reloadData();
           }
         });
       }
@@ -208,11 +225,12 @@ export default function Pickpack({ DeliveryID }) {
   const toSave = async (submitObj) => {
     try {
       const result = await save_pick_pack(submitObj);
-      console.log(result);
+
       if (result.status >= 200 || result.status <= 299) {
         Swal.fire({
           title: ` ${result.data}`,
         });
+        reloadData();
       }
     } catch (err) {
       setSpiner(false);
@@ -274,7 +292,7 @@ export default function Pickpack({ DeliveryID }) {
   };
 
   const setStatus = (formikFunction, formikValue, status) => {
-    formikFunction.setFieldValue("Status", status);
+    // formikFunction.setFieldValue("Status", status);
     formikValue.Status = status;
     return formikValue;
   };
@@ -328,7 +346,7 @@ export default function Pickpack({ DeliveryID }) {
             <Typography color="white">{index + 1}</Typography>
           </Box>
         </Grid>
-        <Grid item xs={10.7}>
+        <Grid item xs={11}>
           <Grid container spacing={1}>
             <Grid item xs={3}>
               <TextFieldWrapper
@@ -411,33 +429,10 @@ export default function Pickpack({ DeliveryID }) {
         validateOnChange
         initialValues={{
           ...PickPackDetail,
+          PackingList: [],
         }}
         validationSchema={createValidationSchama()}
-        onSubmit={async (values, others) => {
-          // setSpiner(true);
-          //   try {
-          //     const result = await update_delivery(values);
-          //     setSpiner(false);
-          //     if (result.status >= 200 || result.status <= 299) {
-          //       Swal.fire({
-          //         title: `DELIVERY# : ${result.data.data}`,
-          //         showConfirmButton: true,
-          //       }).then((result) => {
-          //         if (result.isConfirmed) {
-          //           Router.reload(window.location.pathname);
-          //         }
-          //       });
-          //     }
-          //   } catch (err) {
-          //     setSpiner(false);
-          //     Swal.fire({
-          //       title: `SOMETHING WENT WRONG `,
-          //       text: err,
-          //       icon: "error",
-          //       showConfirmButton: true,
-          //     });
-          //   }
-        }}>
+        onSubmit={async (values, others) => {}}>
         {({ values, ...formikFunctions }) => {
           console.log(values);
           return (
@@ -536,6 +531,11 @@ export default function Pickpack({ DeliveryID }) {
                         inputProps={{ readOnly: true }}
                       />
                     </Grid>
+                    <Grid item xs={12} mt={2}>
+                      <Divider>
+                        <Typography>Picking</Typography>
+                      </Divider>
+                    </Grid>
                   </Grid>
                   <FieldArray
                     name="orderProduct"
@@ -550,6 +550,12 @@ export default function Pickpack({ DeliveryID }) {
                               values
                             );
                           })}
+                          {["picked", "packing", "packed"].includes(
+                            values.Status
+                          )
+                            ? PackingList(formikFunctions, values)
+                            : ""}
+
                           <Grid
                             container
                             justifyContent="center"
@@ -867,5 +873,204 @@ const CustomDataGridPickPack = ({
       </Box>
       {getStockAvailabilityError()}
     </>
+  );
+};
+
+const PackingList = (formikFunction, formikValue, index) => {
+  console.log(formikValue);
+  const listOfItem = {};
+  return (
+    <>
+      <Grid container mt={2}>
+        <Grid item xs={12}>
+          <Divider>
+            <Typography>Packing</Typography>
+          </Divider>
+        </Grid>
+      </Grid>
+      <Grid
+        container
+        spacing={2}
+        sx={{
+          transform: "scale(0.93)",
+        }}>
+        <Grid item xs={0.5} />
+
+        <Grid item xs={11}>
+          <FieldArray
+            name="PackingList"
+            render={(arrayHelper) => {
+              return (
+                <>
+                  {formikValue.PackingList.map((item, index) => {
+                    return (
+                      <>
+                        <Grid container spacing={1} mt={3}>
+                          <Grid item xs={4}>
+                            <ProductSelectForPacking
+                              label="Part Number"
+                              name={`PackingList[${index}].DeliveryItemID`}
+                              selections={formikValue.orderProduct}
+                              disabled={
+                                formikValue.Status === "packed" ? true : false
+                              }
+                            />
+                          </Grid>
+                          <Grid item xs={1.5}>
+                            <TextFieldWrapper
+                              name={`PackingList[${index}].QTY`}
+                              label="QTY"
+                              type="number"
+                              disabled={
+                                formikValue.Status === "packed" ? true : false
+                              }
+                            />
+                          </Grid>
+                          <Grid item xs={1.5}>
+                            <TextFieldWrapper
+                              name={`PackingList[${index}].BoxNumber`}
+                              label="Box #"
+                              type="number"
+                              disabled={
+                                formikValue.Status === "packed" ? true : false
+                              }
+                            />
+                          </Grid>
+                          <Grid item xs={1}>
+                            <TextFieldWrapper
+                              name={`PackingList[${index}].Length`}
+                              label="L"
+                              type="number"
+                              disabled={
+                                formikValue.Status === "packed" ? true : false
+                              }
+                            />
+                          </Grid>
+                          <Grid item xs={1}>
+                            <TextFieldWrapper
+                              name={`PackingList[${index}].Height`}
+                              label="H"
+                              type="number"
+                              disabled={
+                                formikValue.Status === "packed" ? true : false
+                              }
+                            />
+                          </Grid>
+                          <Grid item xs={1}>
+                            <TextFieldWrapper
+                              name={`PackingList[${index}].Width`}
+                              label="W"
+                              type="number"
+                              disabled={
+                                formikValue.Status === "packed" ? true : false
+                              }
+                            />
+                          </Grid>
+                          <Grid item xs={2}>
+                            <TextFieldWrapper
+                              name={`PackingList[${index}].Weight`}
+                              label="kg"
+                              type="number"
+                              disabled={
+                                formikValue.Status === "packed" ? true : false
+                              }
+                            />
+                          </Grid>
+                        </Grid>
+                      </>
+                    );
+                  })}
+
+                  {formikFunction.getFieldMeta("Status").value !== "packed" ? (
+                    <>
+                      <Button
+                        sx={{ marginTop: 1 }}
+                        variant="contained"
+                        onClick={() => {
+                          arrayHelper.push({
+                            DeliveryItemID: "",
+                            QTY: 0,
+                            BoxNumber: 0,
+                            Length: 0,
+                            Height: 0,
+                            Width: 0,
+                            Weight: 0,
+                            DeliveryId: formikValue.DeliveryID,
+                          });
+                        }}>
+                        <AddIcon />
+                      </Button>
+                      {formikValue.PackingList.length > 0 ? (
+                        <Button
+                          sx={{ marginTop: 1, marginLeft: 1 }}
+                          variant="contained"
+                          onClick={() => {
+                            arrayHelper.pop();
+                          }}>
+                          <RemoveIcon />
+                        </Button>
+                      ) : (
+                        ""
+                      )}
+                    </>
+                  ) : (
+                    ""
+                  )}
+                </>
+              );
+            }}
+          />
+        </Grid>
+      </Grid>
+    </>
+  );
+};
+
+const ProductSelectForPacking = ({ name, selections, ...otherProps }) => {
+  const [field, meta] = useField(name);
+  const { setFieldValue } = useFormikContext();
+
+  const selection = [];
+  selections.map((item, index) => {
+    const obj = {
+      DeliveryItemID: item.DeliveryItemID,
+      ProductID: item.ProductID,
+      PartNumber: item.PartNumber,
+      BurnOption: item.BurnOption,
+      Marked: item.Marked,
+    };
+
+    selection.push(obj);
+  });
+
+  const hangleChange = (event) => {
+    setFieldValue(name, event.target.value);
+  };
+
+  const configSelect = {
+    select: true,
+    varient: "outlined",
+    fullWidth: true,
+    onChange: hangleChange,
+    ...field,
+    ...otherProps,
+  };
+
+  if (meta && meta.error && meta.touched) {
+    (configSelect.error = true), (configSelect.helperText = meta.error);
+  }
+
+  return (
+    <TextField {...configSelect} InputLabelProps={{ shrink: true }}>
+      {selection.map((value, pos) => {
+        return (
+          <MenuItem value={value.DeliveryItemID} key={pos}>
+            {`${value.PartNumber}--${value.BurnOption}--${
+              value.marked == "Yes" ? "Marked" : "NotMarked"
+            } `}
+          </MenuItem>
+        );
+      })}
+    </TextField>
   );
 };
