@@ -9,31 +9,31 @@ const dbp = mysql.connectionPromist;
 router.get("/listPickPackDelivery", async (req, res) => {
   const getListOfOpenDelivery = `
   SELECT 
-    delivery.DeliveryID as id,
-    delivery.DeliveryID,
-    delivery.SalesOrderID,
-    CreateDate,
-    ShipDate,
-    Company_name_ch,
-    SUM(deliveryDetail.DeliveryQTY * SoDetail.UnitPrice) AS Amount,
-    delivery.Status
-  FROM
-    sales_db.delivery delivery
-        RIGHT JOIN
-    sales_db.delivery_detail deliveryDetail ON delivery.DeliveryID = deliveryDetail.DeliveryID
-        LEFT JOIN
-    sales_db.sales_order SO ON delivery.SalesOrderID = SO.SalesOrderID
-        LEFT JOIN
-    sales_db.sales_order_detail SOdetail ON SOdetail.SoDetailID = deliveryDetail.SoDetailID
-        LEFT JOIN
-    master_db.customer customer ON SO.CustomerID = customer.CustomerID
-  WHERE
-    delivery.Status IN ('released','picking' 'picked', 'packed')
-  GROUP BY delivery.DeliveryID`;
+  delivery.DeliveryID as id,
+  delivery.DeliveryID,
+  delivery.SalesOrderID,
+  CreateDate,
+  ShipDate,
+  Company_name_ch,
+  SUM(deliveryDetail.DeliveryQTY * SoDetail.UnitPrice) AS Amount,
+  delivery.Status
+FROM
+  sales_db.delivery delivery
+      RIGHT JOIN
+  sales_db.delivery_detail deliveryDetail ON delivery.DeliveryID = deliveryDetail.DeliveryID
+      LEFT JOIN
+  sales_db.sales_order SO ON delivery.SalesOrderID = SO.SalesOrderID
+      LEFT JOIN
+  sales_db.sales_order_detail SOdetail ON SOdetail.SoDetailID = deliveryDetail.SoDetailID
+      LEFT JOIN
+  master_db.customer customer ON SO.CustomerID = customer.CustomerID
+WHERE
+  delivery.Status IN ('released','picking','picked','packing','packed')
+GROUP BY delivery.DeliveryID;
+ `;
 
   try {
     const result = await dbp.query(getListOfOpenDelivery);
-
     res.status(200).json(result[0]);
   } catch (err) {
     res.status(500).json({ data: err });
@@ -159,7 +159,7 @@ FROM
           FROM
               inventory_db.inventory_snapshot
           LIMIT 1)
-          AND delivery.Status IN ('shipped' , 'picking', 'picked', 'packed') UNION ALL SELECT 
+          AND delivery.Status IN ('shipped' , 'picking', 'picked','packing', 'packed') UNION ALL SELECT 
       pk.ProductID AS ProductID,
           0 AS QTY,
           pk.Location AS Location,
@@ -168,7 +168,7 @@ FROM
           pk.CodeVersion AS CodeVersion,
           pk.LotNumber AS LotNumber,
           pk.DateCode AS DateCode,
-          PK.PickQTY AS PickQTY
+          pk.PickQTY AS PickQTY
   FROM
       sales_db.pick pk
   WHERE
@@ -194,16 +194,20 @@ FROM
   FROM
       master_db.product) product ON ((aggbyproduct.ProductID = product.ProductID)))`;
 
+  const packingInfo = `SELECT  BoxNumber, QTY, DeliveryItemID, Length, Height, Width, DeliveryID, Weight FROM sales_db.pack WHERE DeliveryID = ${req.body.DeliveryID}`;
+
   const promisePool = db.promise();
   const delivery = promisePool.query(deliveryStr);
   const deliveryDetail = promisePool.query(deliveryDetailStr);
   const onHandStock = promisePool.query(onhandStockMinusPickPack);
+  const packingDetail = promisePool.query(packingInfo);
 
-  Promise.all([delivery, deliveryDetail, onHandStock])
+  Promise.all([delivery, deliveryDetail, onHandStock, packingDetail])
     .then((results) => {
       const deliveryInfo = {
         ...results[0][0][0],
         orderProduct: results[1][0],
+        PackingList: results[3][0],
       };
 
       deliveryInfo.orderProduct.map((item) => {
@@ -213,7 +217,7 @@ FROM
       });
 
       const newObj = JSON.parse(JSON.stringify(deliveryInfo));
-      console.log("newobj", newObj);
+
       deliveryInfo.orderProduct.map((item, itemIndex) => {
         item.onHandProduct[0].QtyByProductStatus.map((stock, stockIndex) => {
           if (
@@ -304,12 +308,12 @@ router.post("/deletePack", async (req, res) => {
   }
 });
 
-router.post("/savepickpack", async (req, res) => {
+router.post("/savepick", async (req, res) => {
   console.log(req.body);
 
-  const verifyConcurrentAccess = `SELECT PickTime from sales_db.delivery WHERE deliveryID = ${req.body.DeliveryID}`;
-  const [shipTime, other] = await dbp.query(verifyConcurrentAccess);
-  if (shipTime[0].PickTime !== req.body.PickTime) {
+  const verifyConcurrentAccess = `SELECT PickTime from sales_db.delivery WHERE DeliveryID = ${req.body.DeliveryID}`;
+  const [PickTime, other] = await dbp.query(verifyConcurrentAccess);
+  if (PickTime[0].PickTime !== req.body.PickTime) {
     res.status(250).json("Someone Modified the pick detail before you");
     return;
   }
@@ -345,6 +349,111 @@ router.post("/savepickpack", async (req, res) => {
     res.status(500).json(err);
   }
   res.status(200).json(`picking detail is saved`);
+});
+
+router.post("/savepack", async (req, res) => {
+  console.log(req.body);
+  const [PickTime, other] = await dbp.query(
+    `SELECT PickTime FROM sales_db.delivery WHERE DeliveryID =${req.body.DeliveryID}`
+  );
+
+  if (PickTime[0].PickTime !== req.body.PickTime) {
+    res.status(250).json("Someone Modified the delivery detail before you");
+    return;
+  } else {
+    let connection = null;
+    try {
+      connection = await dbp.getConnection();
+      await connection.beginTransaction();
+      await connection.query(
+        `UPDATE sales_db.delivery SET Status = '${req.body.Status}' WHERE DeliveryID = ${req.body.DeliveryID}`
+      );
+      await connection.query(
+        `DELETE FROM sales_db.pack WHERE DeliveryID = ${req.body.DeliveryID}`
+      );
+
+      req.body.PackingList.map(async (item, index) => {
+        const result = await connection.query(
+          `INSERT INTO sales_db.pack (${Object.keys(item)}) VALUES(?)`,
+          [Object.values(item)]
+        );
+      });
+
+      await connection.commit();
+
+      res.status(200).json("Packing data is saved");
+    } catch (err) {
+      if (connection) {
+        await connection.release();
+      }
+
+      res.status(500).json(err);
+    } finally {
+      if (connection) {
+        await connection.release();
+      }
+    }
+  }
+});
+
+router.post("/setDeliveryStatusToPacking", async (req, res) => {
+  try {
+    const [timeStamp, other] = await dbp.query(
+      `SELECT TimeStamp FROM sales_db.delivery WHERE DeliveryID=${req.body.DeliveryID}`
+    );
+    if (timeStamp[0].timeStamp !== req.body.timeStamp) {
+      res.status(250).json("Someone Modified the delivery detail before you");
+      return;
+    } else {
+      await dbp.query(
+        `UPDATE sales_db.delivery SET Status = 'packing' WHERE DeliveryID = ${req.body.DeliveryID}`
+      );
+      res.status(200).json("Set status to packing");
+    }
+  } catch (err) {
+    console.log(err);
+    res.status(500).json(err);
+  }
+});
+
+router.post("/setDeliveryStatusToPacked", async (req, res) => {
+  try {
+    const [timeStamp, other] = await dbp.query(
+      `SELECT TimeStamp FROM sales_db.delivery WHERE DeliveryID=${req.body.DeliveryID}`
+    );
+    if (timeStamp[0].timeStamp !== req.body.timeStamp) {
+      res.status(250).json("Someone Modified the delivery detail before you");
+      return;
+    } else {
+      await dbp.query(
+        `UPDATE sales_db.delivery SET Status = 'packed' WHERE DeliveryID = ${req.body.DeliveryID}`
+      );
+      res.status(200).json("Set status to packed");
+    }
+  } catch (err) {
+    console.log(err);
+    res.status(500).json(err);
+  }
+});
+
+router.post("/setDeliveryStatusToShipped", async (req, res) => {
+  try {
+    const [timeStamp, other] = await dbp.query(
+      `SELECT TimeStamp FROM sales_db.delivery WHERE DeliveryID=${req.body.DeliveryID}`
+    );
+    if (timeStamp[0].timeStamp !== req.body.timeStamp) {
+      res.status(250).json("Someone Modified the delivery detail before you");
+      return;
+    } else {
+      await dbp.query(
+        `UPDATE sales_db.delivery SET Status = 'shipped' WHERE DeliveryID = ${req.body.DeliveryID}`
+      );
+      res.status(200).json("Goods are removed from inventory");
+    }
+  } catch (err) {
+    console.log(err);
+    res.status(500).json(err);
+  }
 });
 
 module.exports = router;

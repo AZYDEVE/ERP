@@ -182,7 +182,7 @@ FROM
       LEFT JOIN
   master_db.customer customer ON SO.CustomerID = customer.CustomerID
 WHERE
-  delivery.Status IN ('block' , 'released','picking', 'picked', 'packed')
+  delivery.Status IN ('block' , 'released','picking', 'picked','packing', 'packed')
 GROUP BY delivery.DeliveryID`;
 
   db.query(getListOfOpenDelivery, (err, results, fields) => {

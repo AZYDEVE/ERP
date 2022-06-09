@@ -286,7 +286,14 @@ export default function Receiving({ poInfo }) {
                                 label="Location"
                               />
                             </Grid>
-                            <Grid item xs={1} alignSelf="center">
+                            <Grid
+                              item
+                              xs={1}
+                              alignSelf="center"
+                              sx={{
+                                cursor: "pointer",
+                                "& :hover": { color: "red" },
+                              }}>
                               <RemoveCircleOutlineIcon
                                 onClick={() => {
                                   arrayHelper.remove(QtyIndex);

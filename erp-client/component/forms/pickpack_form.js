@@ -13,8 +13,10 @@ import {
   MenuItem,
 } from "@mui/material";
 import CircleIcon from "@mui/icons-material/Circle";
-import AddIcon from "@mui/icons-material/Add";
-import RemoveIcon from "@mui/icons-material/Remove";
+import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
+
+import AddBoxIcon from "@mui/icons-material/AddBox";
+
 import TextFieldWrapper from "./formComponent/field";
 import DatePicker from "./formComponent/datePicker";
 
@@ -27,16 +29,22 @@ import Swal from "sweetalert2";
 
 import CustomSelect from "./formComponent/select";
 import CustomAutocomplete from "./formComponent/autoComplete";
+
 import {
   delete_pickpack_set_delivery_status_to_block,
   delete_pack_set_delivery_status_to_picking,
   get_Delivery_for_PickAndPack,
-  save_pick_pack,
+  save_pick,
+  save_pack,
+  reverse_goods_issue,
+  reverse_packed,
+  post_goods_issue,
 } from "../../util/api_call/pickpack_api_call";
-import { DataGrid } from "@mui/x-data-grid";
+import { DataGrid, gridColumnsTotalWidthSelector } from "@mui/x-data-grid";
 import GridBreak from "./formComponent/gridBreaker";
 
 import { useFormikContext, useField } from "formik";
+import { ConstructionTwoTone } from "@mui/icons-material";
 
 export default function Pickpack({ DeliveryID }) {
   const [PickPackDetail, setPickPackDetail] = useState(null);
@@ -46,13 +54,14 @@ export default function Pickpack({ DeliveryID }) {
     const result = await get_Delivery_for_PickAndPack(DeliveryID);
 
     if (result.data) {
+      console.log(result.data);
       setPickPackDetail(result.data);
     }
   }, []);
 
   const reloadData = async () => {
     const result = await get_Delivery_for_PickAndPack(DeliveryID);
-
+    console.log(result.data);
     if (result.data) {
       setPickPackDetail(result.data);
     }
@@ -135,7 +144,45 @@ export default function Pickpack({ DeliveryID }) {
           ),
         })
       ),
+      PackingList: yup.array().of(
+        yup.object({
+          DeliveryItemID: yup.number().required("required"),
+          QTY: yup.number().required("required"),
+          BoxNumber: yup.number().required("required"),
+          Length: yup.number().required("required"),
+          Height: yup.number().required("required"),
+          Width: yup.number().required("required"),
+          Weight: yup.number().required("required"),
+        })
+      ),
     });
+  };
+
+  const checkIFPackingQTYMatchPicking = (formikfunction) => {
+    const packinglist = formikfunction.getFieldMeta("PackingList");
+    const picklist = formikfunction.getFieldMeta("orderProduct");
+    let isPackMatchPick = true;
+
+    picklist.value.map((item, index) => {
+      const sumOfPickQTY = item.onHandProduct[0].QtyByProductStatus.reduce(
+        (pre, current) => pre + current.PickQTY,
+        0
+      );
+
+      const listOfsameDeliveryITEM = packinglist.value.filter(
+        (obj) => obj.DeliveryItemID === item.DeliveryItemID
+      );
+
+      const sumOfPackQTY = listOfsameDeliveryITEM.reduce(
+        (pre, current) => pre + current.QTY,
+        0
+      );
+      if (sumOfPackQTY !== sumOfPickQTY) {
+        isPackMatchPick = false;
+      }
+    });
+
+    return isPackMatchPick;
   };
 
   // delete the picking and packing detail and change the delivery status to Block
@@ -222,9 +269,9 @@ export default function Pickpack({ DeliveryID }) {
   };
 
   // calling api to save the picking detail
-  const toSave = async (submitObj) => {
+  const toSavePick = async (submitObj) => {
     try {
-      const result = await save_pick_pack(submitObj);
+      const result = await save_pick(submitObj);
 
       if (result.status >= 200 || result.status <= 299) {
         Swal.fire({
@@ -247,7 +294,7 @@ export default function Pickpack({ DeliveryID }) {
   // check if the pick quantity equals deliveryQTY, if not inform user
   // call prepareOjectForSaving() to prepare the request body for save pickdetail
   // call toSave() to save
-  const handleSave = async (value, formikFunctions, status) => {
+  const handleSavePick = async (value, formikFunctions, status) => {
     if (formikFunctions.isValid === false) {
       Swal.fire({
         title: `Please fix the errors before saving the data `,
@@ -281,18 +328,76 @@ export default function Pickpack({ DeliveryID }) {
             saveValue,
             formikFunctions
           );
-          await toSave(submitObject);
+          await toSavePick(submitObject);
         }
       });
     } else {
       const saveValue = setStatus(formikFunctions, value, status);
       const submitObject = prepareOjectForSaving(saveValue, formikFunctions);
-      await toSave(submitObject);
+      await toSavePick(submitObject);
+    }
+  };
+
+  const toSavePack = async (submitObj) => {
+    console.log(submitObj);
+    try {
+      const result = await save_pack(submitObj);
+
+      if (result.status >= 200 || result.status <= 299) {
+        Swal.fire({
+          title: ` ${result.data}`,
+        });
+        reloadData();
+      }
+    } catch (err) {
+      setSpiner(false);
+      Swal.fire({
+        title: `SOMETHING WENT WRONG `,
+        text: err,
+        icon: "error",
+        showConfirmButton: true,
+      });
+    }
+  };
+
+  const handleSavePack = async (formikValue, formikFunction, status) => {
+    const isMatching = checkIFPackingQTYMatchPicking(formikFunction);
+
+    if (formikFunction.isValid === false) {
+      Swal.fire({
+        text: "Please fix the errors before saving",
+      });
+      return;
+    }
+
+    if (isMatching === false && status === "packed") {
+      Swal.fire({
+        text: "Cannot finish the packing process because the pack QTY is different from the pick QTY",
+      });
+      return;
+    }
+
+    if (isMatching === false) {
+      Swal.fire({
+        text: "The pack QTY is different from pick QTY",
+        showConfirmButton: true,
+        showCancelButton: true,
+      }).then(async (result) => {
+        if (result.isConfirmed) {
+          const saveObj = setStatus(formikFunction, formikValue, status);
+          await toSavePack(saveObj);
+          reloadData();
+        }
+      });
+    } else {
+      const saveObj = setStatus(formikFunction, formikValue, status);
+      await toSavePack(saveObj);
+      reloadData();
     }
   };
 
   const setStatus = (formikFunction, formikValue, status) => {
-    // formikFunction.setFieldValue("Status", status);
+    formikFunction.setFieldValue("Status", status);
     formikValue.Status = status;
     return formikValue;
   };
@@ -429,7 +534,6 @@ export default function Pickpack({ DeliveryID }) {
         validateOnChange
         initialValues={{
           ...PickPackDetail,
-          PackingList: [],
         }}
         validationSchema={createValidationSchama()}
         onSubmit={async (values, others) => {}}>
@@ -489,6 +593,7 @@ export default function Pickpack({ DeliveryID }) {
                     </Grid>
                     <Grid item xs={2}>
                       <DatePicker
+                        disabled
                         required
                         fullWidth
                         name="ShipDate"
@@ -550,7 +655,7 @@ export default function Pickpack({ DeliveryID }) {
                               values
                             );
                           })}
-                          {["picked", "packing", "packed"].includes(
+                          {["picked", "packing", "packed", "shipped"].includes(
                             values.Status
                           )
                             ? PackingList(formikFunctions, values)
@@ -562,71 +667,201 @@ export default function Pickpack({ DeliveryID }) {
                             mt={2}
                             spacing={2}>
                             <Grid item>
-                              {values.Status === "released" ||
-                              values.Status === "picking" ? (
-                                <Button
-                                  variant="contained"
-                                  size="large"
-                                  sx={{ color: "red" }}
-                                  onClick={handleDeletePickings}>
-                                  delete picking
-                                </Button>
-                              ) : (
-                                <Grid item>
-                                  <Button
-                                    variant="contained"
-                                    size="large"
-                                    sx={{ color: "red" }}
-                                    onClick={() => {
-                                      handleDeletePack(formikFunctions, values);
-                                    }}>
-                                    remove packing
-                                  </Button>
-                                </Grid>
-                              )}
-                            </Grid>
-
-                            <Grid item>
                               <Button
                                 variant="contained"
                                 size="large"
-                                onClick={() =>
-                                  handleSave(values, formikFunctions, "picking")
-                                }>
-                                save
+                                sx={{ color: "red" }}
+                                onClick={async () => {
+                                  if (
+                                    ["released", "picking"].includes(
+                                      values.Status
+                                    )
+                                  ) {
+                                    handleDeletePickings();
+                                  } else if (
+                                    ["picked", "packing"].includes(
+                                      values.Status
+                                    )
+                                  ) {
+                                    handleDeletePack(formikFunctions, values);
+                                  } else if (values.Status === "packed") {
+                                    try {
+                                      const result = await reverse_packed(
+                                        values
+                                      );
+                                      if (
+                                        result.status >= 200 ||
+                                        result.status <= 299
+                                      ) {
+                                        Swal.fire({
+                                          title: ` ${result.data}`,
+                                        });
+                                        await reloadData();
+                                      }
+                                    } catch (err) {
+                                      setSpiner(false);
+                                      Swal.fire({
+                                        title: `SOMETHING WENT WRONG `,
+                                        text: err,
+                                        icon: "error",
+                                        showConfirmButton: true,
+                                      });
+                                    }
+                                  } else if (values.Status === "shipped") {
+                                    try {
+                                      const result = await reverse_goods_issue(
+                                        values
+                                      );
+                                      if (
+                                        result.status >= 200 ||
+                                        result.status <= 299
+                                      ) {
+                                        Swal.fire({
+                                          title: ` ${result.data}`,
+                                        });
+                                        await reloadData();
+                                      }
+                                    } catch (err) {
+                                      setSpiner(false);
+                                      Swal.fire({
+                                        title: `SOMETHING WENT WRONG `,
+                                        text: err,
+                                        icon: "error",
+                                        showConfirmButton: true,
+                                      });
+                                    }
+                                  }
+                                }}>
+                                {(() => {
+                                  if (
+                                    ["released", "picking"].includes(
+                                      values.Status
+                                    )
+                                  ) {
+                                    return "Delete picking";
+                                  } else if (
+                                    ["picked", "packing"].includes(
+                                      values.Status
+                                    )
+                                  ) {
+                                    return "Delete packing";
+                                  } else if (values.Status === "packed") {
+                                    return "change packing list";
+                                  } else if (values.Status === "shipped") {
+                                    return "reverse G.I";
+                                  }
+                                })()}
                               </Button>
                             </Grid>
 
-                            <Grid item>
-                              {values.Status === "released" ||
-                              values.Status === "picking" ? (
+                            {!["packed", "shipped"].includes(values.Status) ? (
+                              <Grid item>
                                 <Button
                                   variant="contained"
                                   size="large"
                                   onClick={() => {
-                                    handleSave(
-                                      values,
-                                      formikFunctions,
-                                      "picked"
-                                    );
+                                    if (
+                                      values.Status === "released" ||
+                                      values.Status === "picking"
+                                    ) {
+                                      handleSavePick(
+                                        values,
+                                        formikFunctions,
+                                        "picking"
+                                      );
+                                    } else if (
+                                      values.Status === "picked" ||
+                                      values.Status === "packing"
+                                    ) {
+                                      handleSavePack(
+                                        values,
+                                        formikFunctions,
+                                        "packing"
+                                      );
+                                    }
                                   }}>
-                                  prepare packing
+                                  save
                                 </Button>
-                              ) : (
-                                <Button
-                                  variant="contained"
-                                  size="large"
-                                  onClick={() => {
-                                    handleSave(
-                                      values,
-                                      formikFunctions,
-                                      "packed"
-                                    );
-                                  }}>
-                                  Finish packing
-                                </Button>
-                              )}
-                            </Grid>
+                              </Grid>
+                            ) : (
+                              ""
+                            )}
+
+                            {values.Status !== "shipped" ? (
+                              <Grid item>
+                                {
+                                  <Button
+                                    variant="contained"
+                                    size="large"
+                                    onClick={async () => {
+                                      if (
+                                        ["released", "picking"].includes(
+                                          values.Status
+                                        )
+                                      ) {
+                                        handleSavePick(
+                                          values,
+                                          formikFunctions,
+                                          "picked"
+                                        );
+                                      } else if (
+                                        ["picked", "packing"].includes(
+                                          values.Status
+                                        )
+                                      ) {
+                                        handleSavePack(
+                                          values,
+                                          formikFunctions,
+                                          "packed"
+                                        );
+                                      } else if (values.Status === "packed") {
+                                        try {
+                                          const result = await post_goods_issue(
+                                            values
+                                          );
+                                          if (
+                                            result.status >= 200 ||
+                                            result.status <= 299
+                                          ) {
+                                            Swal.fire({
+                                              title: ` ${result.data}`,
+                                            });
+                                            await reloadData();
+                                          }
+                                        } catch (err) {
+                                          setSpiner(false);
+                                          Swal.fire({
+                                            title: `SOMETHING WENT WRONG `,
+                                            text: err,
+                                            icon: "error",
+                                            showConfirmButton: true,
+                                          });
+                                        }
+                                      }
+                                    }}>
+                                    {(() => {
+                                      if (
+                                        ["released", "picking"].includes(
+                                          values.Status
+                                        )
+                                      ) {
+                                        return " prepare packing";
+                                      } else if (
+                                        ["picked", "packing"].includes(
+                                          values.Status
+                                        )
+                                      ) {
+                                        return "finish packing";
+                                      } else if (values.Status === "packed") {
+                                        return "goods issue";
+                                      }
+                                    })()}
+                                  </Button>
+                                }
+                              </Grid>
+                            ) : (
+                              ""
+                            )}
                           </Grid>
                         </>
                       );
@@ -896,7 +1131,7 @@ const PackingList = (formikFunction, formikValue, index) => {
         }}>
         <Grid item xs={0.5} />
 
-        <Grid item xs={11}>
+        <Grid item xs={11.5}>
           <FieldArray
             name="PackingList"
             render={(arrayHelper) => {
@@ -912,7 +1147,11 @@ const PackingList = (formikFunction, formikValue, index) => {
                               name={`PackingList[${index}].DeliveryItemID`}
                               selections={formikValue.orderProduct}
                               disabled={
-                                formikValue.Status === "packed" ? true : false
+                                ["packed", "shipped"].includes(
+                                  formikValue.Status
+                                )
+                                  ? true
+                                  : false
                               }
                             />
                           </Grid>
@@ -922,7 +1161,11 @@ const PackingList = (formikFunction, formikValue, index) => {
                               label="QTY"
                               type="number"
                               disabled={
-                                formikValue.Status === "packed" ? true : false
+                                ["packed", "shipped"].includes(
+                                  formikValue.Status
+                                )
+                                  ? true
+                                  : false
                               }
                             />
                           </Grid>
@@ -932,7 +1175,11 @@ const PackingList = (formikFunction, formikValue, index) => {
                               label="Box #"
                               type="number"
                               disabled={
-                                formikValue.Status === "packed" ? true : false
+                                ["packed", "shipped"].includes(
+                                  formikValue.Status
+                                )
+                                  ? true
+                                  : false
                               }
                             />
                           </Grid>
@@ -942,7 +1189,11 @@ const PackingList = (formikFunction, formikValue, index) => {
                               label="L"
                               type="number"
                               disabled={
-                                formikValue.Status === "packed" ? true : false
+                                ["packed", "shipped"].includes(
+                                  formikValue.Status
+                                )
+                                  ? true
+                                  : false
                               }
                             />
                           </Grid>
@@ -952,7 +1203,11 @@ const PackingList = (formikFunction, formikValue, index) => {
                               label="H"
                               type="number"
                               disabled={
-                                formikValue.Status === "packed" ? true : false
+                                ["packed", "shipped"].includes(
+                                  formikValue.Status
+                                )
+                                  ? true
+                                  : false
                               }
                             />
                           </Grid>
@@ -962,56 +1217,80 @@ const PackingList = (formikFunction, formikValue, index) => {
                               label="W"
                               type="number"
                               disabled={
-                                formikValue.Status === "packed" ? true : false
+                                ["packed", "shipped"].includes(
+                                  formikValue.Status
+                                )
+                                  ? true
+                                  : false
                               }
                             />
                           </Grid>
-                          <Grid item xs={2}>
+                          <Grid item xs={1}>
                             <TextFieldWrapper
                               name={`PackingList[${index}].Weight`}
                               label="kg"
                               type="number"
                               disabled={
-                                formikValue.Status === "packed" ? true : false
+                                ["packed", "shipped"].includes(
+                                  formikValue.Status
+                                )
+                                  ? true
+                                  : false
                               }
                             />
                           </Grid>
+                          {!["packed", "shipped"].includes(
+                            formikFunction.getFieldMeta("Status").value
+                          ) ? (
+                            <Grid
+                              item
+                              xs={1}
+                              sx={{
+                                justifyContent: "center",
+                                alignSelf: "center",
+                                cursor: "pointer",
+                                "& :hover": { color: "red" },
+                              }}>
+                              <RemoveCircleOutlineIcon
+                                sx={{
+                                  marginTop: 1,
+                                  fontSize: 28,
+                                }}
+                                variant="contained"
+                                onClick={() => {
+                                  arrayHelper.remove(index);
+                                }}></RemoveCircleOutlineIcon>
+                            </Grid>
+                          ) : (
+                            ""
+                          )}
                         </Grid>
                       </>
                     );
                   })}
 
-                  {formikFunction.getFieldMeta("Status").value !== "packed" ? (
+                  {!["shipped", "packed"].includes(
+                    formikFunction.getFieldMeta("Status").value
+                  ) ? (
                     <>
-                      <Button
-                        sx={{ marginTop: 1 }}
-                        variant="contained"
-                        onClick={() => {
-                          arrayHelper.push({
-                            DeliveryItemID: "",
-                            QTY: 0,
-                            BoxNumber: 0,
-                            Length: 0,
-                            Height: 0,
-                            Width: 0,
-                            Weight: 0,
-                            DeliveryId: formikValue.DeliveryID,
-                          });
-                        }}>
-                        <AddIcon />
-                      </Button>
-                      {formikValue.PackingList.length > 0 ? (
-                        <Button
-                          sx={{ marginTop: 1, marginLeft: 1 }}
+                      <Grid item={1}>
+                        <AddBoxIcon
+                          sx={{ marginTop: 1, fontSize: "5vh" }}
                           variant="contained"
                           onClick={() => {
-                            arrayHelper.pop();
-                          }}>
-                          <RemoveIcon />
-                        </Button>
-                      ) : (
-                        ""
-                      )}
+                            arrayHelper.push({
+                              DeliveryItemID: "",
+                              QTY: 0,
+                              BoxNumber: 0,
+                              Length: 0,
+                              Height: 0,
+                              Width: 0,
+                              Weight: 0,
+                              DeliveryID: formikValue.DeliveryID,
+                            });
+                          }}
+                        />
+                      </Grid>
                     </>
                   ) : (
                     ""

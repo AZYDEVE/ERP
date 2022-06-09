@@ -3,9 +3,9 @@ import RingLoader from "react-spinners/RingLoader";
 import { useEffect, useState } from "react";
 import { Grid, Backdrop, Typography, Box, Modal } from "@mui/material";
 import Swal from "sweetalert2";
-import { get_list_released_delivery_for_pickpack } from "../../../util/api_call/delivery_api_call";
-import DeliveryUpdateDelete from "../../../component/forms/delivery_update_delete_form";
+
 import Pickpack from "../../../component/forms/pickpack_form";
+import { get_list_pick_pack_deliveries } from "../../../util/api_call/pickpack_api_call";
 const PickPackDeliveryList = () => {
   const [DeliveryList, setDeliveryList] = useState("");
   const [spiner, setSpiner] = useState(false);
@@ -15,9 +15,10 @@ const PickPackDeliveryList = () => {
   useEffect(() => {
     const getOpenDelivery = async () => {
       try {
-        const result = await get_list_released_delivery_for_pickpack();
+        const result = await get_list_pick_pack_deliveries();
 
         setDeliveryList(result.data);
+        console.log(result.data);
         console.log(DeliveryList);
       } catch (err) {
         Swal.fire({
