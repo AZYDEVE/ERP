@@ -1,5 +1,6 @@
 const { json } = require("express");
 const express = require("express");
+const { connection } = require("../src/db/conn");
 
 const router = express.Router();
 const mysql = require("../src/db/conn");
@@ -425,18 +426,28 @@ router.post("/setDeliveryStatusToPacked", async (req, res) => {
       res.status(250).json("Someone Modified the delivery detail before you");
       return;
     } else {
-      await dbp.query(
+      const connection = await dbp.getConnection();
+      await connection.beginTransaction();
+      const reverseShipping = `INSERT INTO sales_db.ship ( ProductID, DeliveryItemID, QTY, BurnOption, CodeVersion, Marked, DateCode, LotNumber, DeliveryID, Location) 
+      SELECT  ProductID, DeliveryItemID, PickQTY, BurnOption, CodeVersion, Marked, DateCode, LotNumber, DeliveryID, Location FROM sales_db.pick WHERE deliveryID = ${req.body.DeliveryID}`;
+      await connection.query(reverseShipping);
+
+      await connection.query(
         `UPDATE sales_db.delivery SET Status = 'packed' WHERE DeliveryID = ${req.body.DeliveryID}`
       );
+      await connection.commit();
       res.status(200).json("Set status to packed");
     }
   } catch (err) {
+    await connection.rollback();
+    await connection.release();
     console.log(err);
     res.status(500).json(err);
   }
 });
 
 router.post("/setDeliveryStatusToShipped", async (req, res) => {
+  console.log(req.body);
   try {
     const [timeStamp, other] = await dbp.query(
       `SELECT TimeStamp FROM sales_db.delivery WHERE DeliveryID=${req.body.DeliveryID}`
@@ -445,12 +456,22 @@ router.post("/setDeliveryStatusToShipped", async (req, res) => {
       res.status(250).json("Someone Modified the delivery detail before you");
       return;
     } else {
-      await dbp.query(
+      const connection = await dbp.getConnection();
+      await connection.beginTransaction();
+
+      await connection.query(
         `UPDATE sales_db.delivery SET Status = 'shipped' WHERE DeliveryID = ${req.body.DeliveryID}`
       );
+
+      const insertPickItem = `INSERT INTO sales_db.ship ( ProductID, DeliveryItemID, QTY, BurnOption, CodeVersion, Marked, DateCode, LotNumber, DeliveryID, Location) 
+      SELECT  ProductID, DeliveryItemID, PickQTY*-1 , BurnOption, CodeVersion, Marked, DateCode, LotNumber, DeliveryID, Location FROM sales_db.pick WHERE deliveryID = ${req.body.DeliveryID}`;
+      await connection.query(insertPickItem);
+      await connection.commit();
       res.status(200).json("Goods are removed from inventory");
     }
   } catch (err) {
+    await connection.rollback();
+    await connection.release();
     console.log(err);
     res.status(500).json(err);
   }

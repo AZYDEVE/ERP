@@ -41,6 +41,18 @@ export const get_list_open_deliveries = async () => {
   }
 };
 
+export const get_all_deliveries = async () => {
+  try {
+    const result = await axios.get(
+      process.env.NEXT_PUBLIC_SERVER_HOST + "/delivery/listAllDeliveries"
+    );
+
+    return result;
+  } catch (err) {
+    throw new Error(err);
+  }
+};
+
 export const get_delivery = async (DeliveryID) => {
   console.log(DeliveryID);
   try {

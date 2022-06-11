@@ -194,6 +194,38 @@ GROUP BY delivery.DeliveryID`;
   });
 });
 
+router.get("/listAllDeliveries", (req, res) => {
+  const getListOfOpenDelivery = `
+SELECT 
+  delivery.DeliveryID as id,
+  delivery.DeliveryID,
+  delivery.SalesOrderID,
+  CreateDate,
+  ShipDate,
+  Company_name_ch,
+  SUM(deliveryDetail.DeliveryQTY * SoDetail.UnitPrice) AS Amount,
+  delivery.Status
+FROM
+  sales_db.delivery delivery
+      RIGHT JOIN
+  sales_db.delivery_detail deliveryDetail ON delivery.DeliveryID = deliveryDetail.DeliveryID
+      LEFT JOIN
+  sales_db.sales_order SO ON delivery.SalesOrderID = SO.SalesOrderID
+      LEFT JOIN
+  sales_db.sales_order_detail SOdetail ON SOdetail.SoDetailID = deliveryDetail.SoDetailID
+      LEFT JOIN
+  master_db.customer customer ON SO.CustomerID = customer.CustomerID
+GROUP BY delivery.DeliveryID`;
+
+  db.query(getListOfOpenDelivery, (err, results, fields) => {
+    if (err) {
+      console.log(err);
+      res.status(500).json({ data: err });
+    }
+    res.status(200).json(results);
+  });
+});
+
 router.get("/listPickPackDelivery", (req, res) => {
   const getListOfOpenDelivery = `
 SELECT 

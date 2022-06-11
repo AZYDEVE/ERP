@@ -1,35 +1,63 @@
 import { DataGrid } from "@mui/x-data-grid";
 import RingLoader from "react-spinners/RingLoader";
 import { useEffect, useState } from "react";
-import { Grid, Backdrop, Typography, Box, Modal } from "@mui/material";
+import {
+  Grid,
+  Backdrop,
+  Typography,
+  Box,
+  Modal,
+  Button,
+  Stack,
+} from "@mui/material";
 import Swal from "sweetalert2";
-import { get_list_open_deliveries } from "../../../util/api_call/delivery_api_call";
+import {
+  get_list_open_deliveries,
+  get_all_deliveries,
+} from "../../../util/api_call/delivery_api_call";
 import DeliveryUpdateDelete from "../../../component/forms/delivery_update_delete_form";
-
+import Router from "next/router";
 const OpenDeliveryList = () => {
   const [DeliveryList, setDeliveryList] = useState("");
   const [spiner, setSpiner] = useState(false);
   const [modalIsOpen, setModalIsOpen] = useState(false);
   const [selectedDelivery, setSelectedDelivery] = useState("");
 
-  useEffect(() => {
-    const getOpenDelivery = async () => {
-      try {
-        const result = await get_list_open_deliveries();
-
-        setDeliveryList(result.data);
-        console.log(DeliveryList);
-      } catch (err) {
-        Swal.fire({
-          title: `SOMETHING WENT WRONG `,
-          text: err,
-          icon: "error",
-          showConfirmButton: true,
-        });
-      }
-    };
-    getOpenDelivery();
+  useEffect(async () => {
+    await getOpenDelivery();
   }, []);
+
+  const getOpenDelivery = async () => {
+    try {
+      const result = await get_list_open_deliveries();
+
+      setDeliveryList(result.data);
+      console.log(DeliveryList);
+    } catch (err) {
+      Swal.fire({
+        title: `SOMETHING WENT WRONG `,
+        text: err,
+        icon: "error",
+        showConfirmButton: true,
+      });
+    }
+  };
+
+  const getAllDeliveries = async () => {
+    try {
+      const result = await get_all_deliveries();
+
+      setDeliveryList(result.data);
+      console.log(DeliveryList);
+    } catch (err) {
+      Swal.fire({
+        title: `SOMETHING WENT WRONG `,
+        text: err,
+        icon: "error",
+        showConfirmButton: true,
+      });
+    }
+  };
 
   const columns = [
     {
@@ -103,11 +131,12 @@ const OpenDeliveryList = () => {
   }
 
   return (
-    <Grid container justifyContent="center">
+    <Grid container spacing={3} justifyContent="center">
       <Grid item xs={12} align="center">
         <Typography variant="h6">Open Delivery List</Typography>
       </Grid>
-      <Grid item xs={7.5} mt={3}>
+      <Grid item xs={2}></Grid>
+      <Grid item xs={8} mt={3}>
         <Box sx={{ height: "85vh", width: "100%" }}>
           <DataGrid
             // align="center"
@@ -127,10 +156,27 @@ const OpenDeliveryList = () => {
           />
         </Box>
       </Grid>
+      <Grid item xs={2} mt={3}>
+        <Stack spacing={2}>
+          <Button
+            sx={{ width: "20vh" }}
+            variant="contained"
+            onClick={getAllDeliveries}>
+            All Deliveries
+          </Button>
+          <Button
+            sx={{ width: "20vh" }}
+            variant="contained"
+            onClick={getOpenDelivery}>
+            Open Deliveries
+          </Button>
+        </Stack>
+      </Grid>
       <Modal
         open={modalIsOpen}
         onClose={() => {
           setModalIsOpen(false);
+          getOpenDelivery();
         }}>
         <Box
           sx={{

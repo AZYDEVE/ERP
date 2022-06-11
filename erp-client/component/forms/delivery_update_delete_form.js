@@ -340,6 +340,7 @@ export default function deliveryUpdateDelete({ DeliveryID }) {
                     </Grid>
                     <Grid item xs={2}>
                       <DatePicker
+                        disabled={values.Status === "shipped" ? true : false}
                         required
                         fullWidth
                         name="ShipDate"
