@@ -22,6 +22,7 @@ const OpenDeliveryList = () => {
   const [spiner, setSpiner] = useState(false);
   const [modalIsOpen, setModalIsOpen] = useState(false);
   const [selectedDelivery, setSelectedDelivery] = useState("");
+  const [title, setTitle] = useState("Open Delivery");
 
   useEffect(async () => {
     await getOpenDelivery();
@@ -32,6 +33,7 @@ const OpenDeliveryList = () => {
       const result = await get_list_open_deliveries();
 
       setDeliveryList(result.data);
+      setTitle("Open Delivery");
       console.log(DeliveryList);
     } catch (err) {
       Swal.fire({
@@ -46,7 +48,7 @@ const OpenDeliveryList = () => {
   const getAllDeliveries = async () => {
     try {
       const result = await get_all_deliveries();
-
+      setTitle("All Delivery");
       setDeliveryList(result.data);
       console.log(DeliveryList);
     } catch (err) {
@@ -133,7 +135,7 @@ const OpenDeliveryList = () => {
   return (
     <Grid container spacing={3} justifyContent="center">
       <Grid item xs={12} align="center">
-        <Typography variant="h6">Open Delivery List</Typography>
+        <Typography variant="h6">{title}</Typography>
       </Grid>
       <Grid item xs={2}></Grid>
       <Grid item xs={8} mt={3}>

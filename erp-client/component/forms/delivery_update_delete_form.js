@@ -28,6 +28,8 @@ import {
 import DeleteIcon from "@mui/icons-material/Delete";
 import CustomSelect from "./formComponent/select";
 
+import Invoice from "../pdf_template/invoice_pdf";
+
 export default function deliveryUpdateDelete({ DeliveryID }) {
   const [DeliveryDetail, setDeliveryDetail] = useState(null);
   const [availbleProductList, setAvailableProductList] = useState(null);
@@ -294,6 +296,9 @@ export default function deliveryUpdateDelete({ DeliveryID }) {
                     <Typography variant="h6">
                       Update Delivery # {values.DeliveryID}
                     </Typography>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Invoice />
                   </Grid>
 
                   <Grid container spacing={1.5} mt={0.5}>
