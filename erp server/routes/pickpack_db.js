@@ -52,8 +52,7 @@ router.post("/getDeliveryforPickAndPack", (req, res) => {
     SO.CustomerOrderNumber,
     delivery.CreateDate,
     delivery.ShipDate,
-    SO.DeliveryAddress,
-    SO.DeliveryZip,
+    shipto.FullAddress,
     IF (delivery.Remark='null','',delivery.Remark) as Remark,
     delivery.Status,
     delivery.TimeStamp,
@@ -64,6 +63,8 @@ router.post("/getDeliveryforPickAndPack", (req, res) => {
     sales_db.sales_order AS SO ON delivery.SalesOrderID = SO.SalesOrderID
         LEFT JOIN
     master_db.customer customer ON customer.CustomerID = SO.CustomerID
+        Left JOIN
+    master_db.customer_shipto shipto ON shipto.CustomerShipToID = SO.CustomerShipToID
   WHERE
     DeliveryID = ${req.body.DeliveryID} `;
 
@@ -121,7 +122,7 @@ FROM
       po_db.receiving_document rd
   WHERE
       TimeStamp > (SELECT 
-              TimeStamp
+             if( TimeStamp is NULL ,  '2001-01-01 12:00:00', TimeStamp) 
           FROM
               inventory_db.inventory_snapshot
           LIMIT 1) UNION ALL SELECT 
@@ -138,7 +139,7 @@ FROM
       inventory_db.inventory_transaction it
   WHERE
       TimeStamp > (SELECT 
-              TimeStamp
+        if( TimeStamp is NULL ,  '2001-01-01 12:00:00', TimeStamp) 
           FROM
               inventory_db.inventory_snapshot
           LIMIT 1) UNION ALL SELECT 
@@ -156,7 +157,7 @@ FROM
   LEFT JOIN sales_db.delivery delivery ON P.DeliveryID = delivery.DeliveryID
   WHERE
       P.TimeStamp > (SELECT 
-              TimeStamp
+        if( TimeStamp is NULL ,  '2001-01-01 12:00:00', TimeStamp) 
           FROM
               inventory_db.inventory_snapshot
           LIMIT 1)

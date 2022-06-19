@@ -184,4 +184,19 @@ router.post("/createShipTO", async (req, res) => {
   }
 });
 
+router.post("/getCustomerShipto", async (req, res) => {
+  console.log(req.body);
+
+  try {
+    const listOfShipTo = await dbp.query(
+      `SELECT * FROM master_db.customer_shipto WHERE CustomerID=${req.body.CustomerID} and Active='YES'`
+    );
+    console.log(listOfShipTo);
+    res.status(200).json(listOfShipTo[0]);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json(err);
+  }
+});
+
 module.exports = router;

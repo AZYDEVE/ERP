@@ -57,7 +57,6 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
     return yup.object().shape({
       Company_name_ch: yup.string().required("required!"),
       CustomerOrderNumber: yup.string().required("required"),
-      DeliveryAddress: yup.string().required("required!"),
       CustomerID: yup.number().required("required!"),
       CreateDate: yup.string().required("required!"),
       ShipDate: yup.string().required("required!"),
@@ -400,9 +399,8 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
               setSpiner(false);
               if (result.status >= 200 || result.status <= 299) {
                 Swal.fire({
-                  title: `SUCCESS`,
                   text: `DELIVERY# : ${result.data.data}`,
-                  icon: "success",
+
                   showConfirmButton: true,
                 }).then((result) => {
                   if (result.isConfirmed) {
@@ -422,6 +420,7 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
           }
         }}>
         {({ values, ...formikFunctions }) => {
+          console.log(formikFunctions);
           return (
             <Form>
               <Container>
@@ -479,15 +478,12 @@ export default function deliveryCreation({ salesOrderID, CloseDeliveryPage }) {
                       />
                     </Grid>
 
-                    <Grid item xs={10} sx={{ width: "100%" }}>
+                    <Grid item xs={12} sx={{ width: "100%" }}>
                       <TextFieldWrapper
                         fullWidth
-                        name="DeliveryAddress"
+                        name="FullAddress"
                         label="Delivery Address"
                       />
-                    </Grid>
-                    <Grid item xs={2}>
-                      <TextFieldWrapper name="DeliveryZip" label="Zip Code" />
                     </Grid>
 
                     <Grid item xs={12}>

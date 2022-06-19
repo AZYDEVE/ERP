@@ -31,17 +31,51 @@ const Polist = () => {
     getOpenPo();
   }, []);
 
-  const generateColumn = () => {
-    return Object.keys(poList[0]).map((keyName, index) => {
-      return {
-        field: keyName,
-        headerName: keyName,
-        flex: keyName == "id" ? 0.5 : 1,
-        headerClassName: "datagridHeader",
-        headerAlign: "left",
-      };
-    });
-  };
+  const column = [
+    {
+      field: "id",
+      headerName: "PO ID",
+      flex: 0.5,
+      headerClassName: "datagridHeader",
+      headerAlign: "left",
+    },
+    {
+      field: "Po Date",
+      headerName: "PO Date",
+      flex: 1,
+      headerClassName: "datagridHeader",
+      headerAlign: "left",
+    },
+    {
+      field: "Vendor ID",
+      headerName: "Vendor ID",
+      flex: 1,
+      headerClassName: "datagridHeader",
+      headerAlign: "left",
+    },
+    {
+      field: "Company Name",
+      headerName: "Company Name",
+      flex: 1,
+      headerClassName: "datagridHeader",
+      headerAlign: "left",
+    },
+
+    {
+      field: "Total cost",
+      headerName: "Total cost",
+      flex: 1,
+      headerClassName: "datagridHeader",
+      headerAlign: "left",
+    },
+    {
+      field: "Status",
+      headerName: "Status",
+      flex: 1,
+      headerClassName: "datagridHeader",
+      headerAlign: "left",
+    },
+  ];
 
   if (!poList) {
     return (
@@ -60,7 +94,7 @@ const Polist = () => {
       <Grid item xs={12} align="center">
         <Typography variant="h6">PO List</Typography>
       </Grid>
-      <Grid item xs={7.5} mt={2}>
+      <Grid item xs={8} mt={2}>
         <Box sx={{ height: "85vh", width: "100%" }}>
           <DataGrid
             // align="center"
@@ -68,7 +102,7 @@ const Polist = () => {
             rowHeight={60}
             rows={poList}
             border
-            columns={generateColumn()}
+            columns={column}
             sx={{ ".datagridHeader": { backgroundColor: "primary.main" } }}
             onRowClick={(event, index) => {
               console.log(event.row.id);

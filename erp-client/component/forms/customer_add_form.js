@@ -166,13 +166,12 @@ export default function AddCustomerForm() {
                     </Typography>
                   </Divider>
                 </Grid>
+                <Grid item xs={12}>
+                  <TextField name="FullAddress" label="FullAddress" required />
+                </Grid>
 
                 <Grid item xs={12}>
-                  <TextField
-                    name="BillingStreet"
-                    label="Street Address"
-                    required
-                  />
+                  <TextField name="BillingStreet" label="Street" required />
                 </Grid>
                 <Grid item xs={4}>
                   <TextField name="BillingCity" label="City" required />
@@ -265,8 +264,15 @@ export default function AddCustomerForm() {
                                   <Grid container spacing={2}>
                                     <Grid item xs={12}>
                                       <TextField
+                                        name="FullAddress"
+                                        label="FullAddress"
+                                        required
+                                      />
+                                    </Grid>
+                                    <Grid item xs={12}>
+                                      <TextField
                                         name={`DeliveryAddress[${index}].Street`}
-                                        label="Street Address"
+                                        label="Street"
                                         required
                                       />
                                     </Grid>
@@ -349,6 +355,7 @@ export default function AddCustomerForm() {
                             sx={{ fontSize: "5vh", marginLeft: 2 }}
                             onClick={() => {
                               arrayHelper.push({
+                                FullAddress: "",
                                 Street: "",
                                 City: "",
                                 ProvinceOrState: "",

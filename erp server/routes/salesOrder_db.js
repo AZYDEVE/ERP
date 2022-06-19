@@ -1,7 +1,11 @@
+const { json } = require("express");
 const express = require("express");
+const { connection } = require("../src/db/conn");
+
 const router = express.Router();
 const mysql = require("../src/db/conn");
 const db = mysql.connection;
+const dbp = mysql.connectionPromist;
 
 router.post("/createSalesOrder", (req, res) => {
   const values = req.body;
@@ -11,8 +15,7 @@ router.post("/createSalesOrder", (req, res) => {
     CustomerID: values.CustomerID,
     CustomerOrderNumber: values.CustomerOrderNumber.toUpperCase(),
     SalesOrderDate: values.SalesOrderDate,
-    DeliveryAddress: values.DeliveryAddress.toUpperCase(),
-    DeliveryZip: values.DeliveryZip.toUpperCase(),
+    CustomerShipToID: values.CustomerShipToID,
     Currency: values.Currency.toUpperCase(),
     Incoterms: values.Incoterms.toUpperCase(),
     Remark: values.Remark,
@@ -88,7 +91,7 @@ router.post("/createSalesOrder", (req, res) => {
 router.get("/getOpenSalesList", (req, res) => {
   const sqlGetOpenSalesList = `SELECT 
     SO.SalesOrderID as id,
-    So.CustomerID,
+    SO.CustomerID,
     Customer.Company_name_ch,
     SO.CustomerOrderNumber,
     DATE_FORMAT(SO.SalesOrderDate, "%Y-%M-%d") AS SalesOrderDate,
@@ -114,12 +117,13 @@ router.post("/getSalesOrderDetail", (req, res) => {
   const param = req.body;
   console.log(param);
   const sqlSOStr = `SELECT SalesOrderID, Company_name_ch, so.CustomerID, so.CustomerOrderNumber, 
-  ReferenceNumber,DATE_FORMAT(SalesOrderDate, "%Y-%m-%d") as SalesOrderDate, Currency, Incoterms, Tel, Fax, ContactPerson,
-  Email, BillingAddress, BillingZip, so.DeliveryAddress, so.DeliveryZip, so.Status,
+  DATE_FORMAT(SalesOrderDate, "%Y-%m-%d") as SalesOrderDate, Currency, Incoterms, shipto.CustomerShipToID, shipto.Tel, shipto.Fax, shipto.ContactPerson,
+  shipto.Email,  so.Status,
   so.Remark  
   FROM 
   sales_db.sales_order so
-  join master_db.customer customer on so.CustomerID = customer.customerID
+  join master_db.customer customer on so.CustomerID = customer.CustomerID
+  join master_db.customer_shipto shipto on so.CustomerShipToID = shipto.CustomerShipToID
   WHERE so.salesOrderID= ${param.salesOrderID}`;
 
   const sqlSODtailStr = `
@@ -146,14 +150,21 @@ FROM
   master_db.product product ON salesDetails.productID = product.ProductID
 GROUP BY salesDetails.SoDetailID`;
 
+  const listOfShipToStr = `SELECT * FROM master_db.customer_shipto WHERE CustomerID = (SELECT CustomerID FROM sales_db.sales_order WHERE SalesOrderID = ${param.salesOrderID}) AND Active="YES" `;
+
   const promisePool = db.promise();
   const So = promisePool.query(sqlSOStr);
   const Sodetail = promisePool.query(sqlSODtailStr);
+  const ListOfShiptos = promisePool.query(listOfShipToStr);
 
-  Promise.all([So, Sodetail])
+  Promise.all([So, Sodetail, ListOfShiptos])
     .then((results) => {
-      const poInfo = { ...results[0][0][0], orderProduct: results[1][0] };
-      console.log(poInfo);
+      const poInfo = {
+        ...results[0][0][0],
+        orderProduct: results[1][0],
+        ListOfShipTo: results[2][0],
+      };
+
       res.status(200).json(poInfo);
     })
     .catch((err) => {
@@ -224,14 +235,11 @@ router.post("/updateSalesOrder", (req, res) => {
   const SoData = {
     CustomerID: data.CustomerID,
     CustomerOrderNumber: data.CustomerOrderNumber,
-    ReferenceNumber: data.ReferenceNumber,
     SalesOrderDate: data.SalesOrderDate,
     Currency: data.Currency,
     Incoterms: data.Incoterms,
     Remark: data.Remark,
     Status: data.Status,
-    DeliveryAddress: data.DeliveryAddress,
-    DeliveryZip: data.DeliveryZip,
   };
 
   console.log(data);
@@ -348,11 +356,13 @@ router.post("/updateSalesOrder", (req, res) => {
   });
 });
 
-router.post("/getSalesOrderAvaibility", (req, res) => {
+router.post("/getSalesOrderAvaibility", async (req, res) => {
   const param = req.body.salesOrderID;
 
   const sqlStr = `
   SET @SNAPSHOTTIME := (SELECT TimeStamp FROM inventory_db.inventory_snapshot  LIMIT 1); 
+
+  SET @SNAPSHOTTIME := IF(@SNAPSHOTTIME IS NULL , '2001-01-01 12:00:00',@SNAPSHOTTIME );
 
   SET @SALES_ORDER_PRODUCTID := (SELECT  group_concat( DISTINCT ProductID)FROM sales_db.sales_order_detail WHERE SalesOrderID = ${param}  );
 
@@ -367,7 +377,7 @@ router.post("/getSalesOrderAvaibility", (req, res) => {
       FROM
           inventory_db.inventory_transaction 
       WHERE
-          TimeStamp > @SNAPSHOTTIME AND FIND_IN_SET(ProductID, @SALES_ORDER_PRODUCTID) UNION ALL SELECT 
+      Timestamp > @SNAPSHOTTIME AND FIND_IN_SET(ProductID, @SALES_ORDER_PRODUCTID) UNION ALL SELECT 
           ProductID, ReceiveQTY AS QTY
       FROM
           po_db.receiving_document
@@ -385,15 +395,14 @@ router.post("/getSalesOrderAvaibility", (req, res) => {
       WHERE
           Status = 'open' AND FIND_IN_SET(ProductID, @SALES_ORDER_PRODUCTID)) AS agg ON product.ProductID = agg.ProductID
   GROUP BY ProductID;`;
-
-  db.query(sqlStr, (err, results, fields) => {
-    if (err) {
-      console.log(err);
-      res.status(500).send("something went wrong");
-    }
-    console.log(results);
-    res.status(200).json(results[2]);
-  });
+  try {
+    const results = await dbp.query(sqlStr);
+    console.log(results[0][3]);
+    res.status(200).json(results[0][3]);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json(err);
+  }
 });
 
 module.exports = router;

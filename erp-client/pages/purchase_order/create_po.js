@@ -201,10 +201,10 @@ export default function CreatePo() {
                 selectionLabel="value"
                 recordValueField={`orderProduct[${index}].BurnOption`}
                 option={[
-                  { value: "None" },
-                  { value: "Coded" },
-                  { value: "Keyed" },
-                  { value: "Coded & Keyed" },
+                  { value: "NONE" },
+                  { value: "CODED" },
+                  { value: "KEYED" },
+                  { value: "CODED & KEYED" },
                 ]}
               />
             </Grid>

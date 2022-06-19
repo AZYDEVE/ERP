@@ -13,24 +13,25 @@ const PickPackDeliveryList = () => {
   const [selectedDelivery, setSelectedDelivery] = useState("");
 
   useEffect(() => {
-    const getOpenDelivery = async () => {
-      try {
-        const result = await get_list_pick_pack_deliveries();
-
-        setDeliveryList(result.data);
-        console.log(result.data);
-        console.log(DeliveryList);
-      } catch (err) {
-        Swal.fire({
-          title: `SOMETHING WENT WRONG `,
-          text: err,
-          icon: "error",
-          showConfirmButton: true,
-        });
-      }
-    };
     getOpenDelivery();
   }, []);
+
+  const getOpenDelivery = async () => {
+    try {
+      const result = await get_list_pick_pack_deliveries();
+
+      setDeliveryList(result.data);
+      console.log(result.data);
+      console.log(DeliveryList);
+    } catch (err) {
+      Swal.fire({
+        title: `SOMETHING WENT WRONG `,
+        text: err,
+        icon: "error",
+        showConfirmButton: true,
+      });
+    }
+  };
 
   const columns = [
     {
@@ -132,6 +133,7 @@ const PickPackDeliveryList = () => {
         open={modalIsOpen}
         onClose={() => {
           setModalIsOpen(false);
+          getOpenDelivery();
         }}>
         <Box
           sx={{

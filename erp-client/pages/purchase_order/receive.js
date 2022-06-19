@@ -35,17 +35,51 @@ const Polist = () => {
     getOpenPo();
   }, []);
 
-  const generateColumn = () => {
-    return Object.keys(poList[0]).map((keyName, index) => {
-      return {
-        field: keyName,
-        headerName: keyName,
-        width: keyName == "id" ? 100 : 200,
-        headerClassName: `datagridHeader`,
-        headerAlign: "left",
-      };
-    });
-  };
+  const column = [
+    {
+      field: "id",
+      headerName: "PO ID",
+      flex: 0.5,
+      headerClassName: "datagridHeader",
+      headerAlign: "left",
+    },
+    {
+      field: "Po Date",
+      headerName: "PO Date",
+      flex: 1,
+      headerClassName: "datagridHeader",
+      headerAlign: "left",
+    },
+    {
+      field: "Vendor ID",
+      headerName: "Vendor ID",
+      flex: 1,
+      headerClassName: "datagridHeader",
+      headerAlign: "left",
+    },
+    {
+      field: "Company Name",
+      headerName: "Company Name",
+      flex: 1,
+      headerClassName: "datagridHeader",
+      headerAlign: "left",
+    },
+
+    {
+      field: "Total cost",
+      headerName: "Total cost",
+      flex: 1,
+      headerClassName: "datagridHeader",
+      headerAlign: "left",
+    },
+    {
+      field: "Status",
+      headerName: "Status",
+      flex: 1,
+      headerClassName: "datagridHeader",
+      headerAlign: "left",
+    },
+  ];
 
   if (!poList) {
     return (
@@ -81,7 +115,7 @@ const Polist = () => {
             rows={poList}
             border
             components={{ Toolbar: CustomToolbar }}
-            columns={generateColumn()}
+            columns={column}
             sx={{
               border: "1px solid black",
               ".datagridHeader": {},

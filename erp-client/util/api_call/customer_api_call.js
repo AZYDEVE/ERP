@@ -92,3 +92,16 @@ export const get_customer = async (DeliveryID) => {
     throw new Error(err);
   }
 };
+
+export const get_customer_shipto = async (CustomerID) => {
+  try {
+    const result = await axios.post(
+      process.env.NEXT_PUBLIC_SERVER_HOST + "/customer/getCustomerShipto",
+      CustomerID
+    );
+
+    return result;
+  } catch (err) {
+    throw new Error(err);
+  }
+};

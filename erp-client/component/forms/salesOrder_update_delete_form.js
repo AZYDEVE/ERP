@@ -7,6 +7,7 @@ import {
   Button,
   Box,
   Backdrop,
+  MenuItem,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
@@ -15,9 +16,9 @@ import TextFieldWrapper from "../../component/forms/formComponent/field";
 import DatePicker from "../../component/forms/formComponent/datePicker";
 import Selector from "../../component/forms/formComponent/select";
 import SubmitButtom from "../../component/forms/formComponent/submitButton";
-import { FieldArray, Form, Formik } from "formik";
+import { FieldArray, Form, Formik, useField, useFormikContext } from "formik";
 import * as yup from "yup";
-import moment from "moment";
+
 import CustomAutocomplete from "../../component/forms/formComponent/autoComplete";
 
 import Router from "next/router";
@@ -30,14 +31,14 @@ import {
 } from "../../util/api_call/salesOrder_api_call";
 
 import DeliveryCreation from "./delivery_create_form";
+import { get_customer_shipto } from "../../util/api_call/customer_api_call";
 
 export default function salesorderUpdateDelete({ salesOrderID }) {
   const validationSchema = yup.object().shape({
     Company_name_ch: yup.string().required("required!"),
     CustomerOrderNumber: yup.string().required("required"),
     Incoterms: yup.string().required("required"),
-    BillingAddress: yup.string().required("required!"),
-    DeliveryAddress: yup.string().required("required!"),
+    CustomerShipToID: yup.number().required("required!"),
     CustomerID: yup.number().required("required!"),
     Currency: yup.string().required("required!"),
     SalesOrderDate: yup.string().required("required!"),
@@ -78,6 +79,7 @@ export default function salesorderUpdateDelete({ salesOrderID }) {
 
   const [salesOrderDetail, setSalesOrderDetail] = useState(null);
   const [productList, setProductList] = useState(null);
+  const [customerShipto, setCustomerShipto] = useState([]);
   const [isSoDeletable, setSoDeletable] = useState(true);
   const [deliveryPage, setDeliveryPage] = useState(false);
   const [spiner, setSpiner] = useState(false);
@@ -371,9 +373,7 @@ export default function salesorderUpdateDelete({ salesOrderID }) {
     <>
       <Formik
         enableReinitialize
-        initialValues={{
-          ...salesOrderDetail,
-        }}
+        initialValues={salesOrderDetail}
         validationSchema={validationSchema}
         onSubmit={(values) => {
           checkSoComplete(values);
@@ -402,12 +402,12 @@ export default function salesorderUpdateDelete({ salesOrderID }) {
                   </Grid>
 
                   <Grid container spacing={1.5} mt={0.5}>
-                    <Grid item xs={2}>
+                    <Grid item xs={1.5}>
                       <TextFieldWrapper
                         disabled
                         fullWidth
                         name="SalesOrderID"
-                        label="Sales Order Number"
+                        label="SO Number"
                       />
                     </Grid>
                     <Grid item xs={2}>
@@ -418,27 +418,20 @@ export default function salesorderUpdateDelete({ salesOrderID }) {
                         label="Company name"
                       />
                     </Grid>
-                    <Grid item xs={2}>
+                    <Grid item xs={1.5}>
                       <TextFieldWrapper
                         disabled
                         fullWidth
                         name="CustomerID"
-                        label="Customer ID"
+                        label="CustomerID"
                       />
                     </Grid>
-                    <Grid item xs={2}>
+                    <Grid item xs={1.5}>
                       <TextFieldWrapper
                         fullWidth
                         required
                         name="CustomerOrderNumber"
-                        label="Customer Order #"
-                      />
-                    </Grid>
-                    <Grid item xs={2}>
-                      <TextFieldWrapper
-                        fullWidth
-                        name="ReferenceNumber"
-                        label="Reference Number"
+                        label="PO #"
                       />
                     </Grid>
 
@@ -449,7 +442,7 @@ export default function salesorderUpdateDelete({ salesOrderID }) {
                         label="Order Date"
                       />
                     </Grid>
-                    <Grid item xs={2}>
+                    <Grid item xs={1.5}>
                       <Selector
                         fullWidth
                         required
@@ -469,60 +462,37 @@ export default function salesorderUpdateDelete({ salesOrderID }) {
                       />
                     </Grid>
 
-                    <Grid item xs={2}>
-                      <TextFieldWrapper
-                        fullWidth
-                        name="Tel"
-                        label="Tel"
-                        disabled
+                    <Grid item xs={12}>
+                      <ShipToSelection
+                        name="CustomerShipToID"
+                        label="Delivery Address"
+                        selections={values.ListOfShipTo}
+                        required
                       />
                     </Grid>
 
                     <Grid item xs={2}>
                       <TextFieldWrapper
-                        fullWidth
-                        name="Fax"
-                        label="Fax"
+                        required
                         disabled
-                      />
-                    </Grid>
-
-                    <Grid item xs={2}>
-                      <TextFieldWrapper
-                        fullWidth
                         name="ContactPerson"
                         label="Contact Person"
-                        disabled
                       />
                     </Grid>
                     <Grid item xs={2}>
                       <TextFieldWrapper
-                        fullWidth
-                        name="Email"
-                        label="Email"
                         disabled
+                        name="Tel"
+                        label="Tel"
+                        required
                       />
                     </Grid>
 
-                    <Grid item xs={10} sx={{ width: "100%" }}>
-                      <TextFieldWrapper
-                        fullWidth
-                        name="BillingAddress"
-                        label="Billing Address"
-                      />
+                    <Grid item xs={2}>
+                      <TextFieldWrapper disabled name="Fax" label="Fax" />
                     </Grid>
                     <Grid item xs={2}>
-                      <TextFieldWrapper name="BillingZip" label="Zip Code" />
-                    </Grid>
-                    <Grid item xs={10} sx={{ width: "100%" }}>
-                      <TextFieldWrapper
-                        fullWidth
-                        name="DeliveryAddress"
-                        label="Delivery Address"
-                      />
-                    </Grid>
-                    <Grid item xs={2}>
-                      <TextFieldWrapper name="DeliveryZip" label="Zip Code" />
+                      <TextFieldWrapper disabled name="Email" label="Email" />
                     </Grid>
 
                     <Grid item xs={12}>
@@ -634,3 +604,49 @@ export default function salesorderUpdateDelete({ salesOrderID }) {
     </>
   );
 }
+
+const ShipToSelection = ({ name, selections, ...otherProps }) => {
+  const [field, meta] = useField(name);
+  const { setFieldValue } = useFormikContext();
+
+  const hangleChange = (event) => {
+    console.log(event.target.value);
+    setFieldValue(name, event.target.value);
+    selections.map((item, index) => {
+      if (item.CustomerShipToID === event.target.value) {
+        setFieldValue("ContactPerson", item.ContactPerson);
+        setFieldValue("Tel", item.Tel);
+        setFieldValue("Fax", item.Fax);
+        setFieldValue("Email", item.Email);
+      }
+    });
+  };
+
+  const configSelect = {
+    select: true,
+    varient: "outlined",
+    fullWidth: true,
+
+    ...field,
+    ...otherProps,
+  };
+
+  if (meta && meta.error && meta.touched) {
+    (configSelect.error = true), (configSelect.helperText = meta.error);
+  }
+
+  return (
+    <TextField
+      {...configSelect}
+      InputLabelProps={{ shrink: true }}
+      onChange={hangleChange}>
+      {selections.map((value, pos) => {
+        return (
+          <MenuItem value={value.CustomerShipToID} key={pos}>
+            {`${value.FullAddress}`}
+          </MenuItem>
+        );
+      })}
+    </TextField>
+  );
+};

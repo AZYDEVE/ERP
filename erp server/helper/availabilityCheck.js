@@ -7,7 +7,7 @@ const checkAvailabilityByItems = async (ProductID) => {
   const sqlStr = `
   
   SET @SNAPSHOTTIME := (SELECT TimeStamp FROM inventory_db.inventory_snapshot  LIMIT 1); 
-  
+  SET @SNAPSHOTTIME := IF(@SNAPSHOTTIME IS NULL , '2001-01-01 12:00:00',@SNAPSHOTTIME );
   SELECT  product.ProductID, product.PartNumber, CAST(coalesce( SUM(QTY), 0 ) AS double) as AvailableQTY FROM
        (SELECT ProductID, PartNumber  FROM master_db.product product WHERE ProductID IN (${ProductID.toString()}) ) as product
       LEFT JOIN

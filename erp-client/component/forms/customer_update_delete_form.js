@@ -25,8 +25,7 @@ import TextFieldWrapper from "./formComponent/field";
 const customerSchema = yup.object().shape({
   Tier: yup.string().required("required"),
   Company_name_ch: yup.string().required("required"),
-  BillingStreet: yup.string().required("required"),
-  BillingCity: yup.string().required("required"),
+  FullAddress: yup.string().required("required"),
   BillingCountry: yup.string().required("required"),
   BillingContactPerson: yup.string().required("required"),
   BillingTel: yup.string().required("required"),
@@ -35,8 +34,7 @@ const customerSchema = yup.object().shape({
 });
 
 const shipToSchema = yup.object().shape({
-  Street: yup.string().required("required"),
-  City: yup.string().required("required"),
+  FullAddress: yup.string().required("required"),
   Country: yup.string().required("required"),
   ContactPerson: yup.string().required("required"),
   Tel: yup.string().required("required"),
@@ -55,7 +53,7 @@ export default function UpdateDeleteCustomerForm({ CustomerID }) {
   }, []);
 
   const getCustomer = async () => {
-    const result = await get_customer({ CustomerID: 10224 });
+    const result = await get_customer({ CustomerID });
     try {
       if (result.data) {
         const { DeliveryAddress, ...customerProfile } = result.data;
@@ -302,6 +300,14 @@ export default function UpdateDeleteCustomerForm({ CustomerID }) {
                   <Typography sx={{ fontSize: 12 }}>Billing Address</Typography>
                 </Divider>
               </Grid>
+              <Grid item xs={12}>
+                <TextFieldWrapper
+                  name="FullAddress"
+                  label="Full Address"
+                  disabled={isUpdate.customerProfile}
+                  required
+                />
+              </Grid>
 
               <Grid item xs={12}>
                 <TextFieldWrapper
@@ -393,7 +399,13 @@ export default function UpdateDeleteCustomerForm({ CustomerID }) {
               enableReinitialize
               initialValues={item}
               validationSchema={shipToSchema}
-              onSubmit={(values) => {}}>
+              onSubmit={async (values, otherFunctions) => {
+                if (values.CustomerShipToID) {
+                  await updateCustomerDeliveryAddress(values);
+                } else {
+                  await createNewShipTO(values);
+                }
+              }}>
               {({ values, ...formikfunctions }) => (
                 <Form>
                   <Grid
@@ -438,6 +450,14 @@ export default function UpdateDeleteCustomerForm({ CustomerID }) {
                             disabled
                             name="CustomerShipToID"
                             label="Ship-to ID"
+                          />
+                        </Grid>
+                        <Grid item xs={12}>
+                          <TextFieldWrapper
+                            disabled={isUpdate.DeliveryAddress[index]}
+                            name="FullAddress"
+                            label="Full Address"
+                            required
                           />
                         </Grid>
                         <Grid item xs={12}>
@@ -554,18 +574,14 @@ export default function UpdateDeleteCustomerForm({ CustomerID }) {
                           <DriveFileRenameOutlineTwoToneIcon />
                         </Button>
                         {isUpdate.DeliveryAddress[index] === false ? (
-                          <Button
+                          <SubmitButton
                             sx={{ width: 2 }}
                             variant="contained"
                             onClick={async () => {
-                              if (values.CustomerShipToID) {
-                                await updateCustomerDeliveryAddress(values);
-                              } else {
-                                await createNewShipTO(values);
-                              }
+                              SubmitButton;
                             }}>
                             <SaveTwoToneIcon />
-                          </Button>
+                          </SubmitButton>
                         ) : (
                           ""
                         )}

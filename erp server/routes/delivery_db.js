@@ -11,11 +11,12 @@ router.post("/getSalesOrderDetailForCreateDelivery", (req, res) => {
   const param = req.body;
   console.log(param);
   const sqlSOStr = `SELECT SalesOrderID, Company_name_ch, so.CustomerID, so.CustomerOrderNumber, 
-    DATE_FORMAT(CURDATE(), "%Y-%m-%d") as CreateDate, '' AS ShipDate, so.DeliveryAddress, so.DeliveryZip, so.Status,
+    DATE_FORMAT(CURDATE(), "%Y-%m-%d") as CreateDate, '' AS ShipDate, shipto.FullAddress,  so.Status,
     '' as Remark, so.TimeStamp 
     FROM 
     sales_db.sales_order so
-    join master_db.customer customer on so.CustomerID = customer.customerID
+    join master_db.customer customer ON so.CustomerID = customer.customerID
+    Join master_db.customer_shipto shipto ON so.CustomerShipToID = shipto.CustomerShipToID 
     WHERE so.salesOrderID= ${param.salesOrderID}`;
 
   const sqlSODtailStr = `
@@ -73,9 +74,9 @@ router.post("/createDelivery", async (req, res) => {
     );
 
     if (saleOrderTime[0][0].TimeStamp !== param.TimeStamp) {
-      res
-        .status(250)
-        .json({ data: "sales order is updated during delivery creation" });
+      res.status(250).json({
+        data: "someone updated the sales order before delivery creation",
+      });
       connection.release();
       return;
     }
@@ -83,7 +84,8 @@ router.post("/createDelivery", async (req, res) => {
     const availabilityCheck = require("../helper/availabilityCheck");
     const availableStock = await availabilityCheck(deliveryProductIDS);
     const availability = {};
-    availableStock[0][1].map((item) => {
+
+    availableStock[0][2].map((item) => {
       availability[item.ProductID] = item.AvailableQTY;
     });
 
@@ -268,10 +270,9 @@ router.post("/getDelivery", (req, res) => {
   SO.CustomerID,
   customer.Company_name_ch,
   SO.CustomerOrderNumber,
+  shipto.FullAddress,
   delivery.CreateDate,
   delivery.ShipDate,
-  SO.DeliveryAddress,
-  SO.DeliveryZip,
   IF (delivery.Remark='null','',delivery.Remark) as Remark,
   delivery.Status,
   delivery.TimeStamp 
@@ -281,6 +282,8 @@ FROM
   sales_db.sales_order AS SO ON delivery.SalesOrderID = SO.SalesOrderID
       LEFT JOIN
   master_db.customer customer ON customer.CustomerID = SO.CustomerID
+      LEFT JOIN 
+  master_db.customer_shipto shipto on shipto.CustomerShipToID = SO.CustomerShipToID
 WHERE
   DeliveryID = ${req.body.DeliveryID} `;
 

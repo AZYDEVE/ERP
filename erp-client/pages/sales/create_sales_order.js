@@ -9,17 +9,21 @@ import {
   Button,
   Box,
   Backdrop,
+  MenuItem,
 } from "@mui/material";
 
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import { get_productList } from "../../util/api_call/product_api_call";
-import { get_customer_list } from "../../util/api_call/customer_api_call";
+import {
+  get_customer_list,
+  get_customer_shipto,
+} from "../../util/api_call/customer_api_call";
 import { Transition } from "react-transition-group";
 import TextFieldWrapper from "../../component/forms/formComponent/field";
 import DatePicker from "../../component/forms/formComponent/datePicker";
 import Selector from "../../component/forms/formComponent/select";
 import SubmitButtom from "../../component/forms/formComponent/submitButton";
-import { FieldArray, Form, Formik } from "formik";
+import { FieldArray, Form, Formik, useField, useFormikContext } from "formik";
 import * as yup from "yup";
 import moment from "moment";
 import CustomAutocomplete from "../../component/forms/formComponent/autoComplete";
@@ -34,8 +38,7 @@ export default function CreatePo() {
     Company_name_ch: yup.string().required("required!"),
     CustomerOrderNumber: yup.string().required("required"),
     Incoterms: yup.string().required("required"),
-    BillingAddress: yup.string().required("required!"),
-    DeliveryAddress: yup.string().required("required!"),
+    CustomerShipToID: yup.number().required("please select a delivery address"),
     CustomerID: yup.number().required("required!"),
     Currency: yup.string().required("required!"),
     SalesOrderDate: yup.string().required("required!"),
@@ -65,6 +68,7 @@ export default function CreatePo() {
 
   const [selectedCustomer, setSelectedCustomer] = useState({});
   const [selected, setSelected] = useState(false);
+  const [customerShipto, setCustomerShipto] = useState([]);
   const [productList, setProductList] = useState(null);
   const [customerList, setCustomerList] = useState(null);
   const [spiner, setSpiner] = useState(false);
@@ -83,6 +87,19 @@ export default function CreatePo() {
       setCustomerList(result.data);
     }
   }, []);
+
+  const getListOfShipTo = async (CustomerID) => {
+    try {
+      const listOfShipTo = await get_customer_shipto(CustomerID);
+      if (listOfShipTo.data) {
+        setCustomerShipto(listOfShipTo.data);
+      }
+    } catch (err) {
+      Swal.fire({
+        text: err,
+      });
+    }
+  };
 
   const SelectVendorBtnStyle = {
     width: 385,
@@ -259,10 +276,13 @@ export default function CreatePo() {
           ...selectedCustomer,
           CustomerOrderNumber: "",
           SalesOrderDate: moment(new Date()).format("YYYY-MM-DD"),
-          ReferenceNumber: "",
+
+          CustomerShipToID: "",
           Currency: "",
           Incoterms: "",
           ContactPerson: "",
+          Tel: "",
+          fax: "",
           Email: "",
           orderProduct: [],
         }}
@@ -324,7 +344,9 @@ export default function CreatePo() {
                             <TextField {...params} label="Customer Name" />
                           )}
                           onChange={(event, value) => {
+                            console.log(value);
                             setSelectedCustomer(value);
+                            getListOfShipTo({ CustomerID: value.CustomerID });
                             if (value) {
                               setSelected(true);
                             } else {
@@ -352,13 +374,6 @@ export default function CreatePo() {
                           required
                           name="CustomerOrderNumber"
                           label="Customer Order #"
-                        />
-                      </Grid>
-                      <Grid item xs={2}>
-                        <TextFieldWrapper
-                          fullWidth
-                          name="ReferenceNumber"
-                          label="Reference Number"
                         />
                       </Grid>
 
@@ -389,60 +404,37 @@ export default function CreatePo() {
                         />
                       </Grid>
 
-                      <Grid item xs={2}>
-                        <TextFieldWrapper
-                          fullWidth
-                          name="Tel"
-                          label="Tel"
-                          disabled
+                      <Grid item xs={12}>
+                        <ShipToSelection
+                          name="CustomerShipToID"
+                          label="Delivery Address"
+                          selections={customerShipto}
+                          required
                         />
                       </Grid>
 
                       <Grid item xs={2}>
                         <TextFieldWrapper
-                          fullWidth
-                          name="Fax"
-                          label="Fax"
+                          required
                           disabled
-                        />
-                      </Grid>
-
-                      <Grid item xs={2}>
-                        <TextFieldWrapper
-                          fullWidth
                           name="ContactPerson"
                           label="Contact Person"
-                          disabled
                         />
                       </Grid>
                       <Grid item xs={2}>
                         <TextFieldWrapper
-                          fullWidth
-                          name="Email"
-                          label="Email"
                           disabled
+                          name="Tel"
+                          label="Tel"
+                          required
                         />
                       </Grid>
 
-                      <Grid item xs={10} sx={{ width: "100%" }}>
-                        <TextFieldWrapper
-                          fullWidth
-                          name="BillingAddress"
-                          label="Billing Address"
-                        />
+                      <Grid item xs={2}>
+                        <TextFieldWrapper disabled name="Fax" label="Fax" />
                       </Grid>
                       <Grid item xs={2}>
-                        <TextFieldWrapper name="BillingZip" label="Zip Code" />
-                      </Grid>
-                      <Grid item xs={10} sx={{ width: "100%" }}>
-                        <TextFieldWrapper
-                          fullWidth
-                          name="DeliveryAddress"
-                          label="Delivery Address"
-                        />
-                      </Grid>
-                      <Grid item xs={2}>
-                        <TextFieldWrapper name="DeliveryZip" label="Zip Code" />
+                        <TextFieldWrapper disabled name="Email" label="Email" />
                       </Grid>
 
                       <Grid item xs={12}>
@@ -524,3 +516,49 @@ export default function CreatePo() {
     </>
   );
 }
+
+const ShipToSelection = ({ name, selections, ...otherProps }) => {
+  const [field, meta] = useField(name);
+  const { setFieldValue } = useFormikContext();
+
+  const hangleChange = (event) => {
+    console.log(event.target.value);
+    setFieldValue(name, event.target.value);
+    selections.map((item, index) => {
+      if (item.CustomerShipToID === event.target.value) {
+        setFieldValue("ContactPerson", item.ContactPerson);
+        setFieldValue("Tel", item.Tel);
+        setFieldValue("Fax", item.Fax);
+        setFieldValue("Email", item.Email);
+      }
+    });
+  };
+
+  const configSelect = {
+    select: true,
+    varient: "outlined",
+    fullWidth: true,
+
+    ...field,
+    ...otherProps,
+  };
+
+  if (meta && meta.error && meta.touched) {
+    (configSelect.error = true), (configSelect.helperText = meta.error);
+  }
+
+  return (
+    <TextField
+      {...configSelect}
+      InputLabelProps={{ shrink: true }}
+      onChange={hangleChange}>
+      {selections.map((value, pos) => {
+        return (
+          <MenuItem value={value.CustomerShipToID} key={pos}>
+            {`${value.FullAddress}`}
+          </MenuItem>
+        );
+      })}
+    </TextField>
+  );
+};

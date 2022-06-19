@@ -31,17 +31,51 @@ const SOlist = () => {
     getOpenSO();
   }, []);
 
-  const generateColumn = () => {
-    return Object.keys(salesList[0]).map((keyName, index) => {
-      return {
-        field: keyName,
-        headerName: keyName,
-        headerClassName: "datagridHeader",
-        headerAlign: "left",
-        flex: keyName == "id" ? 0.5 : 1,
-      };
-    });
-  };
+  const columns = [
+    {
+      field: "id",
+      headerName: "Sales Order ID",
+      headerClassName: "datagridHeader",
+      headerAlign: "left",
+      flex: 0.5,
+      hide: true,
+    },
+    {
+      field: "CustomerID",
+      headerName: "Customer ID",
+      headerClassName: "datagridHeader",
+      headerAlign: "left",
+      flex: 1,
+    },
+    {
+      field: "Company_name_ch",
+      headerName: "Company name",
+      headerClassName: "datagridHeader",
+      headerAlign: "left",
+      flex: 1,
+    },
+    {
+      field: "CustomerOrderNumber",
+      headerName: "Po Number",
+      headerClassName: "datagridHeader",
+      headerAlign: "left",
+      flex: 1,
+    },
+    {
+      field: "SalesOrderDate",
+      headerName: "SO Date",
+      headerClassName: "datagridHeader",
+      headerAlign: "left",
+      flex: 1,
+    },
+    {
+      field: "Status",
+      headerName: "Status",
+      headerClassName: "datagridHeader",
+      headerAlign: "left",
+      flex: 1,
+    },
+  ];
 
   if (!salesList) {
     return (
@@ -68,7 +102,7 @@ const SOlist = () => {
             rowHeight={60}
             rows={salesList}
             border
-            columns={generateColumn()}
+            columns={columns}
             sx={{ ".datagridHeader": { backgroundColor: "primary.main" } }}
             onRowClick={(event, index) => {
               console.log(event.row.id);

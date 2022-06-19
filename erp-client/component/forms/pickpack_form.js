@@ -72,7 +72,6 @@ export default function Pickpack({ DeliveryID }) {
     return yup.object().shape({
       Company_name_ch: yup.string().required("required!"),
       CustomerOrderNumber: yup.string().required("required"),
-      DeliveryAddress: yup.string().required("required!"),
       CustomerID: yup.number().required("required!"),
       CreateDate: yup.string().required("required!"),
       ShipDate: yup.string().required("required!"),
@@ -538,7 +537,7 @@ export default function Pickpack({ DeliveryID }) {
         validationSchema={createValidationSchama()}
         onSubmit={async (values, others) => {}}>
         {({ values, ...formikFunctions }) => {
-          console.log(values);
+          console.log(formikFunctions);
           return (
             <Form>
               <Container>
@@ -601,19 +600,12 @@ export default function Pickpack({ DeliveryID }) {
                       />
                     </Grid>
 
-                    <Grid item xs={10} sx={{ width: "100%" }}>
+                    <Grid item xs={12} sx={{ width: "100%" }}>
                       <TextFieldWrapper
                         disabled
                         fullWidth
-                        name="DeliveryAddress"
+                        name="FullAddress"
                         label="Delivery Address"
-                      />
-                    </Grid>
-                    <Grid item xs={2}>
-                      <TextFieldWrapper
-                        disabled
-                        name="DeliveryZip"
-                        label="Zip Code"
                       />
                     </Grid>
 

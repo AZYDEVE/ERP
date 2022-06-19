@@ -353,19 +353,12 @@ export default function deliveryUpdateDelete({ DeliveryID }) {
                       />
                     </Grid>
 
-                    <Grid item xs={10} sx={{ width: "100%" }}>
+                    <Grid item xs={12} sx={{ width: "100%" }}>
                       <TextFieldWrapper
                         disabled
                         fullWidth
-                        name="DeliveryAddress"
+                        name="FullAddress"
                         label="Delivery Address"
-                      />
-                    </Grid>
-                    <Grid item xs={2}>
-                      <TextFieldWrapper
-                        disabled
-                        name="DeliveryZip"
-                        label="Zip Code"
                       />
                     </Grid>
 
