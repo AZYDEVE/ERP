@@ -298,7 +298,7 @@ export default function deliveryUpdateDelete({ DeliveryID }) {
                     </Typography>
                   </Grid>
                   <Grid item xs={12}>
-                    <Invoice />
+                    <Invoice DeliveryID={DeliveryID} />
                   </Grid>
 
                   <Grid container spacing={1.5} mt={0.5}>
@@ -411,14 +411,18 @@ export default function deliveryUpdateDelete({ DeliveryID }) {
                                 </Button>
                               </Grid>
                             ) : null}
-                            <Grid item>
-                              <SubmitButtom
-                                variant="contained"
-                                size="large"
-                                sx={{ color: "red" }}>
-                                update
-                              </SubmitButtom>
-                            </Grid>
+                            {values.Status !== "shipped" ? (
+                              <Grid item>
+                                <SubmitButtom
+                                  variant="contained"
+                                  size="large"
+                                  sx={{ color: "red" }}>
+                                  update
+                                </SubmitButtom>
+                              </Grid>
+                            ) : (
+                              ""
+                            )}
                             {values.Status == "block" ? (
                               <Grid item>
                                 <Button

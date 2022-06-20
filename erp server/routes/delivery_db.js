@@ -416,4 +416,61 @@ router.post("/updateDelivery", async (req, res) => {
   }
 });
 
+router.post("/getInvoiceDetailForPDF", async (req, res) => {
+  console.log(req.body.DeliveryID);
+  const invoiceInfoStr = `SELECT 
+  delivery.DeliveryID, 
+  delivery.ShipDate,
+  SO.CustomerOrderNumber,
+  customer.Company_name_ch as BillingCompanyName,
+  customer.FullAddress as BillingAddress,
+  customer.BillingContactPerson,
+  customer.BillingTel,
+  shipto.CompanyName as DeliveryContactPerson,
+  shipto.FullAddress as DeliveryAddress,
+  shipto.Tel as DeliveryTel,
+  shipto.ContactPerson as DeliveryContactPerson,
+  Delivery.Remark
+FROM
+  sales_db.delivery delivery
+      JOIN
+  sales_db.sales_order SO ON SO.SalesOrderID = delivery.SalesOrderID
+      JOIN
+  master_db.customer customer ON customer.CustomerID = SO.CustomerID
+      JOIN
+  master_db.customer_shipto shipto ON SO.CustomerShipToID = shipto.CustomerShipToID
+  WHERE delivery.DeliveryID = ${req.body.DeliveryID} `;
+
+  const invoiceItemStr = `SELECT 
+  deliveryDetail.ProductID,
+  product.PartNumber,
+  deliveryDetail.DeliveryQTY AS QTY,
+  salesDetail.UnitPrice,
+  deliveryDetail.DeliveryQTY * salesDetail.UnitPrice AS Amount
+  
+ FROM
+     sales_db.delivery_detail deliveryDetail
+         LEFT JOIN
+     sales_db.sales_order_detail salesDetail ON deliveryDetail.SoDetailID = salesDetail.SoDetailID
+         LEFT JOIN
+     master_db.product product ON deliveryDetail.ProductID = product.ProductID
+ WHERE
+     deliveryDetail.DeliveryID = ${req.body.DeliveryID}`;
+
+  const promisePool = db.promise();
+  const invoice = promisePool.query(invoiceInfoStr);
+  const invoiceDetail = promisePool.query(invoiceItemStr);
+
+  Promise.all([invoice, invoiceDetail])
+    .then((results) => {
+      console.log(results);
+      const poInfo = { ...results[0][0][0], orderProduct: results[1][0] };
+      console.log(poInfo);
+      res.status(200).json(poInfo);
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json(err);
+    });
+});
 module.exports = router;
